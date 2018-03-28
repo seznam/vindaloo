@@ -80,18 +80,18 @@ Ukazkovy base.py
 ```
 
 # bude jen pozit dal
-CONFIG = {
+CONFIG_FRAGMENT_FRAGMENT = {
     'maintainer': "Viktor Lacina <viktor.lacina@firma.seznam.cz>",
     'version': "1.29.0",
     'image_name': 'doc.ker.dev/sos/groupware_bridge'
 }
 
 # Bude jen pouzit dale
-K8S_DEPLOYMENT = {
+DEPLOYMENT_FRAGMENT = {
     'file_version': 1,
     'replicas': 2,
     'ident_label': "groupware-bridge",
-    'image': "{}:{}".format(CONFIG['image_name'], CONFIG['version']),
+    'image': "{}:{}".format(CONFIG_FRAGMENT['image_name'], CONFIG_FRAGMENT['version']),
     'container_port': 6666,
     'env': [
         {
@@ -102,7 +102,7 @@ K8S_DEPLOYMENT = {
 }
 
 # Bude jen pouzit dale
-K8S_SERVICE = {
+SERVICE_FRAGMENT = {
     'file_version': 4,
     'app_name': "groupware-bridge",
     'ident_label': "groupware-bridge-service",
@@ -117,7 +117,7 @@ K8S_SERVICE = {
 DOCKER_FILES = [
     {
         'dir': ".",
-        'config': CONFIG,
+        'config': CONFIG_FRAGMENT,
         'template': "Dockerfile",
     }
 ]
@@ -129,7 +129,7 @@ K8S_OBJECTS = {
     "deployment": [
         {
             'dir': "k8s",
-            'config': K8S_DEPLOYMENT,
+            'config': DEPLOYMENT_FRAGMENT,
             'template': "deployment.yaml",
             'object_type': "deployment"
         },
@@ -137,10 +137,26 @@ K8S_OBJECTS = {
     "service": [
         {
             'dir': "k8s",
-            'config': K8S_SERVICE,
+            'config': SERVICE_FRAGMENT,
             'template': "service.yaml",
             'object_type': "service",
         },
     ]
 }
+```
+
+Ukazkovy dev.py
+----------------
+
+```
+from base import *  #  Tim podedime konfiguraci
+
+
+# Tady muzeme prekryt, nebo modifikovat cokoliv, co je nadefinovano v BASE
+
+
+DEDPLOYMENT_FRAGMENT.update({
+    'novy_klic': 'nova_hodnota'
+})
+
 ```
