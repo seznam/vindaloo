@@ -114,6 +114,7 @@ class SosTool:
         kwargs = {}
         if get_stdout:
             kwargs['stdout'] = subprocess.PIPE
+            kwargs['stderr'] = subprocess.PIPE
 
         return subprocess.run(command, **kwargs)
 
@@ -220,6 +221,13 @@ class SosTool:
             "kubectl", "get", object_type, module_name,
             "-o=jsonpath='{$.metadata.annotations.file_version}'"
         ], get_stdout=True)
+        if res.returncode != 0:
+            output = res.stderr.decode("utf-8").strip("'")
+            print(output)
+            # Pokud jde o prvni deployment, tak remove version nemame.
+            if "Error from server (NotFound)" in output:
+                return None
+
         assert res.returncode == 0
         try:
             output = int(res.stdout.decode("utf-8").strip("'"))
