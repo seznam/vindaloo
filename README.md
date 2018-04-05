@@ -165,7 +165,8 @@ DEDPLOYMENT_FRAGMENT.update({
 Jak to ubuildit
 ---------------
 
-Novy virtualenv z nejake rozumne stare trojky
+Novy virtualenv z nejake rozumne stare trojky.
+Pokud balite pex a zmenil se sostool, je potreba zvysit verzi v setup.py, nebo se bude porad balit stara verze :-)
 
 ```
 pip install pystache pex

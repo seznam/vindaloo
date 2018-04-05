@@ -79,7 +79,7 @@ class SosTool:
         dep_env = options[0]
 
         if dep_env not in LOCAL_ENVS:
-            self.fail("Musite zadat EXISTUJICI prostredi ktere chcete nasadit.")
+            self.fail("Musite zadat EXISTUJICI prostredi ktere chcete nasadit. {} nezname.".format(dep_env))
 
         if not self.import_config(dep_env):
             self.fail("Musite zadat nakonfigurovane prostredi ktere chcete nasadit.")
