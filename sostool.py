@@ -1,5 +1,7 @@
 #!/usr/bin/python3
+
 import os
+import shutil
 import sys
 import subprocess
 import tempfile
@@ -13,18 +15,22 @@ NONE = "base"
 DEV = "dev"
 TEST = "test"
 STAGE = "stage"
+PROD = "prod"
 
-LOCAL_ENVS = [DEV, TEST, STAGE]
+LOCAL_ENVS = [DEV, TEST, STAGE, PROD]
 
 K8S_NAMESPACES = {
     DEV: "sos-dev",
     TEST: "sos-test",
-    STAGE: "sos-stage",
+    PROD: "sos-stable",
 }
 
 K8S_OBJECT_TYPES = [
     "podpreset", "deployment", "service", "ingres", "cronjob", "job"
 ]
+
+DEFAULT_DEPLOY_DIR = "./deploy_files"
+SUCCESS_REPLY = ("Y", "y", "a", "A")
 
 
 class SosTool:
@@ -50,11 +56,28 @@ class SosTool:
         spc = subprocess.call(['bash', temp_file.name, locality])
         assert spc == 0
 
+    def confirm(self, message, default="y"):
+        res = input("{}{}: ".format(message, " [{}]".format(default)) if default else "")
+        if res in SUCCESS_REPLY or (res is None and default in SUCCESS_REPLY):
+            return True
+        return False
+
+    def create_prod_deploy_dir(self):
+        desired_dir = input("Do jakeho adresare chcete vystup? [{}]: ".format(DEFAULT_DEPLOY_DIR))
+        if not desired_dir:
+            desired_dir = DEFAULT_DEPLOY_DIR
+        if os.path.isdir(desired_dir):
+            if not self.confirm("Adresar jiz existuje, pouzijeme ho?"):
+                return self.create_prod_deploy_dir()
+        os.makedirs(desired_dir, exist_ok=True)
+        return desired_dir
+
     def k8s_deploy(self, options):
         if not options:
             self.fail("Musite zadat prostredi ktere chcete nasadit.")
 
         dep_env = options[0]
+
         if dep_env not in LOCAL_ENVS:
             self.fail("Musite zadat EXISTUJICI prostredi ktere chcete nasadit.")
 
@@ -64,23 +87,41 @@ class SosTool:
         # prepneme se
         self.select_k8s_env(dep_env)
 
+        # pokud je cilem produkce, tak jen budeme stosovat do adresare
+        if dep_env == PROD:
+            deploy_dir = self.create_prod_deploy_dir()
+        else:
+            deploy_dir = None
+
         # pro jednotlive typy souboru vygenerujeme yaml soubory a nasadime je
 
         for obj_type in K8S_OBJECT_TYPES:
             if obj_type not in self.config_module.K8S_OBJECTS:
-                continue  # Pokud tenhle ty nema tak jedeme dal
+                continue  # Pokud tenhle typ nema tak jedeme dal
             for yaml_conf in self.config_module.K8S_OBJECTS[obj_type]:
                 remote_version = self.get_remote_object_version(obj_type, yaml_conf['config']['ident_label'])
                 if remote_version == yaml_conf['config']['file_version']:
                     print("Preskakuji {} nezmenil se".format(yaml_conf['template']))
                     continue
+                elif not remote_version:
+                    print("Na serveru zatim neni zadna verze.")
+
                 temp_file = self.create_file(yaml_conf['template'], yaml_conf['config'])
 
                 if not temp_file:
                     self.fail("Chyba pri vytvareni deployment souboru")
 
-                res = self.cmd(["kubectl", "apply", "-f", temp_file.name])
-                assert res.returncode == 0
+                if dep_env == PROD:
+                    shutil.copy(temp_file.name, os.path.join(deploy_dir, yaml_conf['template']))
+                    with open(os.path.join(deploy_dir, "todo.txt"), "a+") as todo_file:
+                        todo_file.write(" ".join(["kubectl", "apply", "-f", yaml_conf['template']]))
+                        todo_file.write("\n")
+                else:
+                    res = self.cmd(["kubectl", "apply", "-f", temp_file.name])
+                    assert res.returncode == 0
+
+        if deploy_dir:
+            print("Deployment pripraven v adresari {}.".format(deploy_dir))
 
     def print_usage_and_exit(self):
         print(HELP)
@@ -197,9 +238,9 @@ class SosTool:
                 summary.setdefault(env, {}).setdefault(image, {'local': None, 'remote': None})["remote"] = remote_[env][image]
 
         print("\nPro definovana prostredi vzdy obraz a verze")
-        for env in remote_:
+        for env in summary:
             print("\n{}:".format(env))
-            for image_ in remote_[env]:
+            for image_ in summary[env]:
                 vers = summary[env][image_]
                 warning = " [ROZDILNE]" if vers["local"] != vers["remote"] else ""
                 print("Image: {} v konfigu: {}, na serveru: {} {}".format(image_, vers["local"], vers["remote"], warning))
@@ -209,9 +250,11 @@ class SosTool:
             "kubectl", "get", "deployment", module_name,
             "-o=jsonpath='{$.spec.template.spec.containers[*].image}'"
         ], get_stdout=True)
-        assert res.returncode == 0
-        output = res.stdout.decode("utf-8").strip("'").split(" ")
-        return output
+        if res.returncode == 0:
+            output = res.stdout.decode("utf-8").strip("'").split(" ")
+            return output
+        else:
+            return []
 
     def select_k8s_env(self, env):
         assert self.cmd(["kubectl", "config", "use-context", K8S_NAMESPACES[env]]).returncode == 0
@@ -223,7 +266,6 @@ class SosTool:
         ], get_stdout=True)
         if res.returncode != 0:
             output = res.stderr.decode("utf-8").strip("'")
-            print(output)
             # Pokud jde o prvni deployment, tak remove version nemame.
             if "Error from server (NotFound)" in output:
                 return None

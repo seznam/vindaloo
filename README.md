@@ -160,3 +160,18 @@ DEDPLOYMENT_FRAGMENT.update({
 })
 
 ```
+
+
+Jak to ubuildit
+---------------
+
+Novy virtualenv z nejake rozumne stare trojky
+
+```
+pip install pystache pex
+
+make
+
+# success
+
+```
