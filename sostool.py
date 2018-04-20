@@ -311,16 +311,16 @@ class SosTool:
 
     def do_command(self, command, options):
 
-            if command == "build":
-                self.build_images()
-            elif command == "push":
-                self.push_images()
-            elif command == "versions":
-                self.collect_versions(options)
-            elif command == "kubelogin":
-                self.k8s_login(options)
-            elif command == "deploy":
-                self.k8s_deploy(options)
+        if command == "build":
+            self.build_images()
+        elif command == "push":
+            self.push_images()
+        elif command == "versions":
+            self.collect_versions(options)
+        elif command == "kubelogin":
+            self.k8s_login(options)
+        elif command == "deploy":
+            self.k8s_deploy(options)
 
     def main(self):
 
