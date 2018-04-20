@@ -111,12 +111,12 @@ SERVICE_FRAGMENT = {
 
 # Konfigurace docker files
 # pole dictu s klici:
-# dir - adresar kam ma byt vygenerovan Dockerfile
+# context_dir - adresar ktery se preda dockeru
 # config - dict s konfiguraci
 # template - soubor se sablonou dockerfile z templates
 DOCKER_FILES = [
     {
-        'dir': ".",
+        'context_dir': ".",
         'config': CONFIG_FRAGMENT,
         'template': "Dockerfile",
     }

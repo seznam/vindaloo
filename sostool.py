@@ -174,7 +174,16 @@ class SosTool:
         """Spusti build image bez cachovani"""
         for conf in self.config_module.DOCKER_FILES:
             self.create_dockerfile(conf)
-            res = self.cmd(["docker", "build", "--no-cache", "-t", self.image_name(conf['config']), "."])
+            res = self.cmd([
+                "docker",
+                "build",
+                "--no-cache",
+                "-t",
+                self.image_name(conf['config']),
+                "-f",
+                "Dockerfile",
+                conf['context_dir'],
+            ])
             assert res.returncode == 0
 
     def push_images(self):
@@ -307,7 +316,7 @@ class SosTool:
         return temp_file
 
     def create_dockerfile(self, conf):
-        self.create_file(conf['template'], conf['config'], force_dest_file="{}/Dockerfile".format(conf['dir']))
+        self.create_file(conf['template'], conf['config'], force_dest_file="Dockerfile")
 
     def do_command(self, command, options):
 
