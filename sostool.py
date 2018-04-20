@@ -58,7 +58,7 @@ class SosTool:
 
     def confirm(self, message, default="y"):
         res = input("{}{}: ".format(message, " [{}]".format(default)) if default else "")
-        if res in SUCCESS_REPLY or (res is None and default in SUCCESS_REPLY):
+        if res in SUCCESS_REPLY or (not res and default in SUCCESS_REPLY):
             return True
         return False
 
@@ -174,6 +174,9 @@ class SosTool:
         """Spusti build image bez cachovani"""
         for conf in self.config_module.DOCKER_FILES:
             self.create_dockerfile(conf)
+            if conf.get('pre_build_msg'):
+                if not self.confirm("{}\nPokracujeme?".format(conf['pre_build_msg'])):
+                    continue
             res = self.cmd([
                 "docker",
                 "build",

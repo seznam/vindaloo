@@ -119,6 +119,10 @@ DOCKER_FILES = [
         'context_dir': ".",
         'config': CONFIG_FRAGMENT,
         'template': "Dockerfile",
+        'pre_build_msg': """Prosim nejdriv spust:
+
+make clean
+"""
     }
 ]
 
@@ -176,4 +180,3 @@ make
 # success
 
 ```
-
