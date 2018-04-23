@@ -22,6 +22,7 @@ LOCAL_ENVS = [DEV, TEST, STAGE, PROD]
 K8S_NAMESPACES = {
     DEV: "sos-dev",
     TEST: "sos-test",
+    STAGE: "sos-stage",
     PROD: "sos-stable",
 }
 
