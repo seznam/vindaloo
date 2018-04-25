@@ -26,6 +26,7 @@ LOCAL_ENVS = [DEV, TEST, STAGE, PROD]
 K8S_NAMESPACES = {
     DEV: "sos-dev",
     TEST: "sos-test",
+    STAGE: "sos-stage",
     PROD: "sos-stable",
 }
 
@@ -62,7 +63,7 @@ class SosTool:
 
     def confirm(self, message, default="y"):
         res = input("{}{}: ".format(message, " [{}]".format(default)) if default else "")
-        if res in SUCCESS_REPLY or (res in (None, "") and default in SUCCESS_REPLY):
+        if res in SUCCESS_REPLY or (not res and default in SUCCESS_REPLY):
             return True
         return False
 
@@ -197,7 +198,19 @@ class SosTool:
         """Spusti build image bez cachovani"""
         for conf in self.config_module.DOCKER_FILES:
             self.create_dockerfile(conf)
-            res = self.cmd(["docker", "build", "--no-cache", "-t", self.image_name(conf['config']), "."])
+            if conf.get('pre_build_msg'):
+                if not self.confirm("{}\nPokracujeme?".format(conf['pre_build_msg'])):
+                    continue
+            res = self.cmd([
+                "docker",
+                "build",
+                "--no-cache",
+                "-t",
+                self.image_name(conf['config']),
+                "-f",
+                "Dockerfile",
+                conf.get('context_dir', '.'),
+            ])
             assert res.returncode == 0
 
     def push_images(self):
@@ -351,20 +364,20 @@ class SosTool:
         return temp_file
 
     def create_dockerfile(self, conf):
-        self.create_file(conf['template'], conf['config'], force_dest_file="{}/Dockerfile".format(conf['dir']))
+        self.create_file(conf['template'], conf['config'], force_dest_file="Dockerfile")
 
     def do_command(self, command, options):
 
-            if command == "build":
-                self.build_images()
-            elif command == "push":
-                self.push_images()
-            elif command == "versions":
-                self.collect_versions(options)
-            elif command == "kubelogin":
-                self.k8s_login(options)
-            elif command == "deploy":
-                self.k8s_deploy(options)
+        if command == "build":
+            self.build_images()
+        elif command == "push":
+            self.push_images()
+        elif command == "versions":
+            self.collect_versions(options)
+        elif command == "kubelogin":
+            self.k8s_login(options)
+        elif command == "deploy":
+            self.k8s_deploy(options)
 
     def main(self):
 

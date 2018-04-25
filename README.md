@@ -12,12 +12,12 @@ Co to umi
 Zatim jen maly zaklad
 
 - Ubuildit dockerove image
-- Pushnout 
+- Pushnout
 - zkontrolovat verze v K8S
 - prihlasit se do clusteru
 - deploynout do clusteru, jen selektivne zmenene
 
- 
+
 Typycke pouziti
 ---------------
 
@@ -56,7 +56,7 @@ k8s
         - Dockerfile
         - deployment.yaml
         - some_other.yaml
-    
+
     - base.py
     - test.py
     - dev.py
@@ -65,7 +65,7 @@ k8s
 ```
 
 `templates` obsahuje sablony generovanych souboru. Uvnitr maji mustache syntaxi.
-Dovoluje i jednoduche cyckly atp. Je to takovy neseznami TENG :-) 
+Dovoluje i jednoduche cyckly atp. Je to takovy neseznami TENG :-)
 Syntaxe: https://mustache.github.io/mustache.5.html
 
 `base.py` je zaklad konfigurace a mel by obsahovat to co budou mit spolecne
@@ -80,7 +80,7 @@ Ukazkovy base.py
 ```
 
 # bude jen pozit dal
-CONFIG_FRAGMENT_FRAGMENT = {
+CONFIG_FRAGMENT = {
     'maintainer': "Viktor Lacina <viktor.lacina@firma.seznam.cz>",
     'version': "1.29.0",
     'image_name': 'doc.ker.dev/sos/groupware_bridge'
@@ -111,14 +111,18 @@ SERVICE_FRAGMENT = {
 
 # Konfigurace docker files
 # pole dictu s klici:
-# dir - adresar kam ma byt vygenerovan Dockerfile
+# context_dir - adresar ktery se preda dockeru
 # config - dict s konfiguraci
 # template - soubor se sablonou dockerfile z templates
 DOCKER_FILES = [
     {
-        'dir': ".",
+        'context_dir': ".",
         'config': CONFIG_FRAGMENT,
         'template': "Dockerfile",
+        'pre_build_msg': """Prosim nejdriv spust:
+
+make clean
+"""
     }
 ]
 
@@ -155,7 +159,7 @@ from base import *  #  Tim podedime konfiguraci
 # Tady muzeme prekryt, nebo modifikovat cokoliv, co je nadefinovano v BASE
 
 
-DEDPLOYMENT_FRAGMENT.update({
+DEPLOYMENT_FRAGMENT.update({
     'novy_klic': 'nova_hodnota'
 })
 
