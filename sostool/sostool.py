@@ -5,8 +5,12 @@ import shutil
 import sys
 import subprocess
 import tempfile
-import pystache
+from typing import List
 
+import pystache
+from sostool import config
+
+from sostool.git_integration import Git
 
 YES_OPTIONS = ["y", "Y", "a", "A"]
 
@@ -58,7 +62,7 @@ class SosTool:
 
     def confirm(self, message, default="y"):
         res = input("{}{}: ".format(message, " [{}]".format(default)) if default else "")
-        if res in SUCCESS_REPLY or (res is None and default in SUCCESS_REPLY):
+        if res in SUCCESS_REPLY or (res in (None, "") and default in SUCCESS_REPLY):
             return True
         return False
 
@@ -90,11 +94,17 @@ class SosTool:
         # pokud je cilem produkce, tak jen budeme stosovat do adresare
         if dep_env == PROD:
             deploy_dir = self.create_prod_deploy_dir()
+
+            # Vypiseme hlavicku to-do, uz proto aby se v pripade recyklace adresare nehromadily stare zaznamy :-)
+            with open(os.path.join(deploy_dir, "todo.txt"), "w") as todo_file:
+                todo_file.write("K8S Nasazeni:\n\n")
+
         else:
             deploy_dir = None
 
         # pro jednotlive typy souboru vygenerujeme yaml soubory a nasadime je
 
+        yaml_files = []
         for obj_type in K8S_OBJECT_TYPES:
             if obj_type not in self.config_module.K8S_OBJECTS:
                 continue  # Pokud tenhle typ nema tak jedeme dal
@@ -112,16 +122,29 @@ class SosTool:
                     self.fail("Chyba pri vytvareni deployment souboru")
 
                 if dep_env == PROD:
-                    shutil.copy(temp_file.name, os.path.join(deploy_dir, yaml_conf['template']))
+                    temp_file_name = "sos-{}_{}".format(yaml_conf['config']['ident_label'], yaml_conf['template'])
+                    # potrebujeme abspath, protozer pak hodne menime adresare
+                    deploy_file = os.path.abspath(os.path.join(deploy_dir, temp_file_name))
+                    shutil.copy(temp_file.name, deploy_file)
                     with open(os.path.join(deploy_dir, "todo.txt"), "a+") as todo_file:
-                        todo_file.write(" ".join(["kubectl", "apply", "-f", yaml_conf['template']]))
+                        todo_file.write(" ".join(["kubectl", "apply", "-f", temp_file_name]))
                         todo_file.write("\n")
+                    yaml_files.append(deploy_file)
                 else:
                     res = self.cmd(["kubectl", "apply", "-f", temp_file.name])
                     assert res.returncode == 0
 
         if deploy_dir:
             print("Deployment pripraven v adresari {}.".format(deploy_dir))
+            if yaml_files:
+                if self.confirm("Mam to rovnou poslat do gitlabu k nasazeni?"):
+                    self.send_yaml_files_to_gitlab(yaml_files)
+                    print("OK, je to v mastru.")
+
+            if self.confirm("Mam vypsat noticky na deploy?"):
+                with open(os.path.join(deploy_dir, "todo.txt"), "r") as todo_file:
+                    print("")
+                    print(todo_file.read())
 
     def print_usage_and_exit(self):
         print(HELP)
@@ -270,12 +293,33 @@ class SosTool:
             if "Error from server (NotFound)" in output:
                 return None
 
-        assert res.returncode == 0
+        assert res.returncode == 0, output
         try:
             output = int(res.stdout.decode("utf-8").strip("'"))
         except Exception:
             output = None
         return output
+
+    def send_yaml_files_to_gitlab(self, files: List[str], commit_message: str = "SOS nova verze") -> None:
+
+        if not files:
+            return
+        saved_dir = os.getcwd()  # Sem se pak budeme vracet
+        try:
+            git = Git(reuse_last_repo=False)
+            git.init_workdir()
+            for _ in git.get_repo(config.TT_GIT_REPO, print_it=False):
+                pass
+            for filename in files:
+                print("{} -> {}".format(filename, os.path.join(git.get_copy_dir(), "sos-stable", os.path.basename(filename))))
+                shutil.copy(filename, os.path.join(git.get_copy_dir(), "sos-stable", os.path.basename(filename)))
+                git.add([os.path.join("sos-stable", os.path.basename(filename))])
+            git.commit(commit_message)
+            print("commitnuto")
+            git.push_master()
+            print("pushnuto")
+        finally:
+            os.chdir(saved_dir)  # vratime se do puvodniho adresare
 
     def create_file(self, template_file_name, conf, force_dest_file=None):
         data = ""
@@ -450,6 +494,7 @@ deploy <env> - nasadi zmeny do clusteru
 
 """
 
-if __name__ == "__main__":
+
+def run():
     tool = SosTool()
     tool.main()

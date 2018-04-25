@@ -171,6 +171,8 @@ Pokud balite pex a zmenil se sostool, je potreba zvysit verzi v setup.py, nebo s
 ```
 pip install pystache pex
 
+# pokud jse menili kod, tak povysit verzi v setup.py (jinak se ubali se starou (cache))
+
 make
 
 # success

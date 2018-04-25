@@ -1,2 +1,2 @@
 pex:
-	pex . pystache -c sostool.py -o latest/sostool.pex -f dist --python-shebang='/usr/bin/env python3'
+	pex . pystache sostool -e sostool.sostool:run -o latest/sostool.pex -f dist --python-shebang='/usr/bin/env python3'
