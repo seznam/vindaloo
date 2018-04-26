@@ -135,7 +135,6 @@ K8S_OBJECTS = {
             'dir': "k8s",
             'config': DEPLOYMENT_FRAGMENT,
             'template': "deployment.yaml",
-            'object_type': "deployment"
         },
     ],
     "service": [
@@ -143,7 +142,6 @@ K8S_OBJECTS = {
             'dir': "k8s",
             'config': SERVICE_FRAGMENT,
             'template': "service.yaml",
-            'object_type': "service",
         },
     ]
 }
