@@ -205,6 +205,7 @@ class SosTool:
                 "docker",
                 "build",
                 "--no-cache",
+                "--dns-search {}".format(self.config_module.get("DNS_SEARCH", "dev.dszn.cz")),
                 "-t",
                 self.image_name(conf['config']),
                 "-f",
