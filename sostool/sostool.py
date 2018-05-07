@@ -294,7 +294,8 @@ class SosTool:
             return []
 
     def select_k8s_env(self, env):
-        assert self.cmd(["kubectl", "config", "use-context", K8S_NAMESPACES[env]]).returncode == 0
+        assert self.cmd(["kubectl", "config", "use-context", K8S_NAMESPACES[env]]).returncode == 0, (
+            "nastavte si kuberneti context pro {0}: kubectl config set-context {0} --cluster=kube1.ko --namespace={0} --user=<USERNAME>-ko".format(env))
 
     def get_remote_object_version(self, object_type, module_name):
         res = self.cmd([
