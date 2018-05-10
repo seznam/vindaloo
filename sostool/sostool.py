@@ -294,8 +294,15 @@ class SosTool:
             return []
 
     def select_k8s_env(self, env):
-        assert self.cmd(["kubectl", "config", "use-context", K8S_NAMESPACES[env]]).returncode == 0, (
-            "nastavte si kuberneti context pro {0}: kubectl config set-context {0} --cluster=kube1.ko --namespace={0} --user=<USERNAME>-ko".format(env))
+        if not (self.cmd(["kubectl", "config", "use-context", K8S_NAMESPACES[env]]).returncode == 0):
+            if not self.confirm("Neni nastaven kuberneti context pro {}. Mam ho vytvorit?".format(env)):
+                print('Deploy byl ukoncen')
+                sys.exit(0)
+            username = input("Zadejte domenove jmeno:")
+            assert self.cmd([
+                "kubectl", "config", "set-context", K8S_NAMESPACES[env], "--cluster=kube1.ko", 
+                "--namespace={}".format(K8S_NAMESPACES[env]), "--user={}".format(username)]).returncode == 0
+            assert self.cmd(["kubectl", "config", "use-context", K8S_NAMESPACES[env]]).returncode == 0
 
     def get_remote_object_version(self, object_type, module_name):
         res = self.cmd([
@@ -456,12 +463,12 @@ if [ -z "$(which kubectl)" ]; then
 fi
 
 # Install certificate if not there
-if [ ! -f ${ca_pem} ]; then
-    curl -sS ${ca_pem_url} > ${ca_pem}
-fi
-
-# show LOGIN-NOTES.txt file
-curl --max-time 1 -k https://gitlab.kancelar.seznam.cz/ultra/SCIF/k8s/documentation/raw/info-notice-to-gitlab-pages/LOGIN-NOTES.txt 2>/dev/null || true
+if [ ! -f ${ca_pem} ]; then 
+    curl -sS ${ca_pem_url} > ${ca_pem} 
+fi 
+ 
+# show LOGIN-NOTES.txt file 
+curl --max-time 1 -k https://gitlab.kancelar.seznam.cz/ultra/SCIF/k8s/documentatio n/raw/info-notice-to-gitlab-pages/LOGIN-NOTES.txt 2>/dev/null || true
 
 dex_login_form_uri="${dex_uri}/auth?client_id=${dex_client_id}&client_secret=${dex_client_secret}&redirect_uri=${dex_redirect_uri}&scope=${dex_scope}&response_type=code"
 dex_req_id=$(${CURL} -I  -s -L -X GET "${dex_login_form_uri}" | grep -i location | cut -d '=' -f 2 | tr -d '\r')
