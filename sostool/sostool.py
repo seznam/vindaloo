@@ -67,6 +67,12 @@ class SosTool:
             return True
         return False
 
+    def input_text(self, message):
+        text = ""
+        while text == "":
+            text = input(message)
+        return text
+
     def create_prod_deploy_dir(self):
         desired_dir = input("Do jakeho adresare chcete vystup? [{}]: ".format(DEFAULT_DEPLOY_DIR))
         if not desired_dir:
@@ -182,6 +188,9 @@ class SosTool:
             kwargs['stderr'] = subprocess.PIPE
 
         return subprocess.run(command, **kwargs)
+    
+    def cmd_check(self, command, get_stdout=False):
+        return self.cmd(command, get_stdout).returncode == 0
 
     def fail(self, msg):
         print(msg)
@@ -294,15 +303,15 @@ class SosTool:
             return []
 
     def select_k8s_env(self, env):
-        if not (self.cmd(["kubectl", "config", "use-context", K8S_NAMESPACES[env]]).returncode == 0):
+        if not self.cmd_check(["kubectl", "config", "use-context", K8S_NAMESPACES[env]]):
             if not self.confirm("Neni nastaven kuberneti context pro {}. Mam ho vytvorit?".format(env)):
                 print('Deploy byl ukoncen')
                 sys.exit(0)
-            username = input("Zadejte domenove jmeno:")
-            assert self.cmd([
+            username = self.input_text("Zadejte domenove jmeno: ")
+            assert self.cmd_check([
                 "kubectl", "config", "set-context", K8S_NAMESPACES[env], "--cluster=kube1.ko", 
-                "--namespace={}".format(K8S_NAMESPACES[env]), "--user={}".format(username)]).returncode == 0
-            assert self.cmd(["kubectl", "config", "use-context", K8S_NAMESPACES[env]]).returncode == 0
+                "--namespace={}".format(K8S_NAMESPACES[env]), "--user={}".format(username)])
+            assert self.cmd_check(["kubectl", "config", "use-context", K8S_NAMESPACES[env]])
 
     def get_remote_object_version(self, object_type, module_name):
         res = self.cmd([
