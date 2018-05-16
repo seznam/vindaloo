@@ -45,7 +45,6 @@ class SosTool:
 
     def __init__(self):
         self.config_module = None
-        self.batch_mode = False
 
     def am_i_logged_in(self):
         spc = subprocess.call(
@@ -203,7 +202,7 @@ class SosTool:
         """Spusti build image bez cachovani"""
         for conf in self.config_module.DOCKER_FILES:
             self.create_dockerfile(conf)
-            if conf.get('pre_build_msg'):
+            if conf.get('pre_build_msg') and not self.args.noninteractive:
                 if not self.confirm("{}\nPokracujeme?".format(conf['pre_build_msg'])):
                     continue
             res = self.cmd([
@@ -365,7 +364,7 @@ class SosTool:
         temp_file.seek(0)
 
         # Volitelne nabidneme k editaci
-        if not self.batch_mode:
+        if not self.args.noninteractive:
             res = input("Vygenrovan {} chces si to jeste poeditovat? [n]:".format(template_file_name))
             if res in ("a", "y", "A", "Y"):
                 editor = os.getenv('EDITOR', 'vi')
@@ -396,6 +395,7 @@ class SosTool:
     def main(self):
         parser = argparse.ArgumentParser(description=self.__class__.__doc__)
         parser.add_argument('--debug', action='store_true')
+        parser.add_argument('--noninteractive', action='store_true')
 
         subparsers = parser.add_subparsers(title='commands', dest='command')
 
