@@ -8,9 +8,9 @@ import tempfile
 from typing import List
 
 import pystache
-from sostool import config
 
-from sostool.git_integration import Git
+from . import config
+from .git_integration import Git
 
 YES_OPTIONS = ["y", "Y", "a", "A"]
 
@@ -188,7 +188,7 @@ class SosTool:
             kwargs['stderr'] = subprocess.PIPE
 
         return subprocess.run(command, **kwargs)
-    
+
     def cmd_check(self, command, get_stdout=False):
         return self.cmd(command, get_stdout).returncode == 0
 
@@ -308,7 +308,7 @@ class SosTool:
                 sys.exit(0)
             username = self.input_text("Zadejte domenove jmeno: ")
             assert self.cmd_check([
-                "kubectl", "config", "set-context", K8S_NAMESPACES[env], "--cluster=kube1.ko", 
+                "kubectl", "config", "set-context", K8S_NAMESPACES[env], "--cluster=kube1.ko",
                 "--namespace={}".format(K8S_NAMESPACES[env]), "--user={}".format(username)])
             assert self.cmd_check(["kubectl", "config", "use-context", K8S_NAMESPACES[env]])
 
@@ -471,11 +471,11 @@ if [ -z "$(which kubectl)" ]; then
 fi
 
 # Install certificate if not there
-if [ ! -f ${ca_pem} ]; then 
-    curl -sS ${ca_pem_url} > ${ca_pem} 
-fi 
- 
-# show LOGIN-NOTES.txt file 
+if [ ! -f ${ca_pem} ]; then
+    curl -sS ${ca_pem_url} > ${ca_pem}
+fi
+
+# show LOGIN-NOTES.txt file
 curl --max-time 1 -k https://gitlab.kancelar.seznam.cz/ultra/SCIF/k8s/documentatio n/raw/info-notice-to-gitlab-pages/LOGIN-NOTES.txt 2>/dev/null || true
 
 dex_login_form_uri="${dex_uri}/auth?client_id=${dex_client_id}&client_secret=${dex_client_secret}&redirect_uri=${dex_redirect_uri}&scope=${dex_scope}&response_type=code"
