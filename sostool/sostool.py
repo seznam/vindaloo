@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import argparse
 import os
 import shutil
 import sys
@@ -39,6 +40,9 @@ SUCCESS_REPLY = ("Y", "y", "a", "A")
 
 
 class SosTool:
+    """
+    Nastroj pro usnadneni prace s dockerem a kubernetes
+    """
 
     def __init__(self):
         self.config_module = None
@@ -53,8 +57,8 @@ class SosTool:
         )
         return spc == 0
 
-    def k8s_login(self, options):
-        locality = options[0] if options else "ko"  # KO je default, asi by chtelo vymyslet lepe
+    def k8s_login(self):
+        locality = self.args.cluster
         temp_file = tempfile.NamedTemporaryFile()
         temp_file.write(bytes(KUBE_LOGIN_SCRIPT, 'utf-8'))
         temp_file.flush()
@@ -83,11 +87,8 @@ class SosTool:
         os.makedirs(desired_dir, exist_ok=True)
         return desired_dir
 
-    def k8s_deploy(self, options):
-        if not options:
-            self.fail("Musite zadat prostredi ktere chcete nasadit.")
-
-        dep_env = options[0]
+    def k8s_deploy(self):
+        dep_env = self.args.environment
 
         if dep_env not in LOCAL_ENVS:
             self.fail("Musite zadat EXISTUJICI prostredi ktere chcete nasadit. {} nezname.".format(dep_env))
@@ -152,10 +153,6 @@ class SosTool:
                 with open(os.path.join(deploy_dir, "todo.txt"), "r") as todo_file:
                     print("")
                     print(todo_file.read())
-
-    def print_usage_and_exit(self):
-        print(HELP)
-        sys.exit(1)
 
     def import_config(self, env):
         # radsi checkneme ze mame soubor, abysme neimportovali nejaky jiny modul z path...
@@ -250,7 +247,7 @@ class SosTool:
 
     def collect_remote_versions(self, only_env=None):
         remote_versions = {}
-        for env in K8S_NAMESPACES.keys():
+        for env in K8S_NAMESPACES:
             if only_env and only_env != env:
                 continue
 
@@ -271,9 +268,9 @@ class SosTool:
 
         return remote_versions
 
-    def collect_versions(self, options):
-        local_ = self.collect_local_versions(options[0] if options else None)
-        remote_ = self.collect_remote_versions(options[0] if options else None)
+    def collect_versions(self):
+        local_ = self.collect_local_versions(self.args.environment)
+        remote_ = self.collect_remote_versions(self.args.environment)
         summary = {}
         for env in local_:
             for image in local_[env]:
@@ -383,35 +380,43 @@ class SosTool:
     def create_dockerfile(self, conf):
         self.create_file(conf['template'], conf['config'], force_dest_file="Dockerfile")
 
-    def do_command(self, command, options):
+    def do_command(self):
+        command = self.args.command
 
         if command == "build":
             self.build_images()
         elif command == "push":
             self.push_images()
         elif command == "versions":
-            self.collect_versions(options)
+            self.collect_versions()
         elif command == "kubelogin":
-            self.k8s_login(options)
+            self.k8s_login()
         elif command == "deploy":
-            self.k8s_deploy(options)
+            self.k8s_deploy()
 
     def main(self):
+        parser = argparse.ArgumentParser(description=self.__class__.__doc__)
+        subparsers = parser.add_subparsers(title='commands', dest='command')
+        subparsers.add_parser('build', help='ubali Docker image (vsechny)')
+        subparsers.add_parser('push', help='pushne docker image (vsechny)')
+        versions_parser = subparsers.add_parser('versions', help='vypise verze vsech imagu a srovna s clusterem')
+        versions_parser.add_argument('environment', help='env pro ktery chceme verze zobrazit', choices=LOCAL_ENVS, nargs='?')
+        login_parser = subparsers.add_parser('kubelogin', help='prihlasi se do kubernetu')
+        login_parser.add_argument('cluster', choices=('ko', 'ng'), default='ko', nargs='?')
+        deploy_parser = subparsers.add_parser('deploy', help='nasadi zmeny do clusteru')
+        deploy_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
+
+        self.args, _ = parser.parse_known_args()
 
         self.config_module = self.import_config(NONE)
 
         if not self.check_current_dir():
             self.fail("Adresar neobsahuje slozku k8s nebo Dockerfile. Jsme uvnitr modulu?")
 
-        if len(sys.argv) < 2:
-            self.print_usage_and_exit()
-
-        command = sys.argv[1]
-
-        if not self.am_i_logged_in() and command != "kubelogin":
+        if not self.am_i_logged_in() and self.args.command != "kubelogin":
             self.fail("Nejste prihlaseni, zkuste 'sostool kubelogin'")
 
-        self.do_command(command, sys.argv[2:])
+        self.do_command()
 
 
 KUBE_LOGIN_SCRIPT = r"""#!/bin/bash
@@ -505,23 +510,6 @@ kubectl config set-cluster ${kube_cluster} --server=${kube_apiserver} --certific
 kubectl config set-context ${kube_cluster} --cluster=${kube_cluster} --namespace=${kube_default_ns} --user=${username}-${dc}
 kubectl config use-context ${kube_cluster}
 kubectl config set-credentials "${username}-${dc}" --token="${token}"
-"""
-
-HELP = """
-./sostool <command> [options, ...]
-
-commands:
-
-build - ubali Docker image (vsechny)
-
-push - pushne docker image (vsechny)
-
-versions - vypise verze vsech imagu a srovna s clusterem
-
-kubelogin <ko|ng> - prihlasi se do kubernetu
-
-deploy <env> - nasadi zmeny do clusteru
-
 """
 
 
