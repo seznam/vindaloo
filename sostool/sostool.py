@@ -15,7 +15,6 @@ from .git_integration import Git
 
 YES_OPTIONS = ["y", "Y", "a", "A"]
 
-DEBUG = False
 NONE = "base"
 DEV = "dev"
 TEST = "test"
@@ -176,7 +175,7 @@ class SosTool:
         return os.path.isdir("k8s")
 
     def cmd(self, command, get_stdout=False):
-        if DEBUG:
+        if self.args.debug:
             print("CALL", command)
 
         kwargs = {}
@@ -396,13 +395,19 @@ class SosTool:
 
     def main(self):
         parser = argparse.ArgumentParser(description=self.__class__.__doc__)
+        parser.add_argument('--debug', action='store_true')
+
         subparsers = parser.add_subparsers(title='commands', dest='command')
+
         subparsers.add_parser('build', help='ubali Docker image (vsechny)')
         subparsers.add_parser('push', help='pushne docker image (vsechny)')
+
         versions_parser = subparsers.add_parser('versions', help='vypise verze vsech imagu a srovna s clusterem')
         versions_parser.add_argument('environment', help='env pro ktery chceme verze zobrazit', choices=LOCAL_ENVS, nargs='?')
+
         login_parser = subparsers.add_parser('kubelogin', help='prihlasi se do kubernetu')
         login_parser.add_argument('cluster', choices=('ko', 'ng'), default='ko', nargs='?')
+
         deploy_parser = subparsers.add_parser('deploy', help='nasadi zmeny do clusteru')
         deploy_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
 
