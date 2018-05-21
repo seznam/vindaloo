@@ -194,6 +194,14 @@ class SosTool:
     def build_images(self):
         """Spusti build image bez cachovani"""
         for conf in self.config_module.DOCKER_FILES:
+            if self.args.image:
+                image_name = conf['config']['image_name']
+                # jmeno bez hostu, napr. sos/adminserver
+                pure_image_name = image_name[image_name.index('/') + 1:]
+                if pure_image_name != self.args.image:
+                    print('preskakuju image {}'.format(pure_image_name))
+                    continue
+
             self.create_dockerfile(conf)
             if conf.get('pre_build_msg') and not self.args.noninteractive:
                 if not self.confirm("{}\nPokracujeme?".format(conf['pre_build_msg'])):
@@ -374,7 +382,9 @@ class SosTool:
 
         subparsers = parser.add_subparsers(title='commands', dest='command')
 
-        subparsers.add_parser('build', help='ubali Docker image (vsechny)')
+        build_parser = subparsers.add_parser('build', help='ubali Docker image (vsechny)')
+        build_parser.add_argument('image', help='image, ktery chceme ubildit', nargs='?')
+
         subparsers.add_parser('push', help='pushne docker image (vsechny)')
 
         versions_parser = subparsers.add_parser('versions', help='vypise verze vsech imagu a srovna s clusterem')
