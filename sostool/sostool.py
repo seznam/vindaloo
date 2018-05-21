@@ -115,13 +115,6 @@ class SosTool:
             if obj_type not in self.config_module.K8S_OBJECTS:
                 continue  # Pokud tenhle typ nema tak jedeme dal
             for yaml_conf in self.config_module.K8S_OBJECTS[obj_type]:
-                remote_version = self.get_remote_object_version(obj_type, yaml_conf['config']['ident_label'])
-                if remote_version == yaml_conf['config']['file_version']:
-                    print("Preskakuji {} nezmenil se".format(yaml_conf['template']))
-                    continue
-                elif not remote_version:
-                    print("Na serveru zatim neni zadna verze.")
-
                 temp_file = self.create_file(yaml_conf['template'], yaml_conf['config'])
 
                 if not temp_file:
@@ -306,24 +299,6 @@ class SosTool:
                 "kubectl", "config", "set-context", K8S_NAMESPACES[env], "--cluster=kube1.ko",
                 "--namespace={}".format(K8S_NAMESPACES[env]), "--user={}".format(username)])
             assert self.cmd_check(["kubectl", "config", "use-context", K8S_NAMESPACES[env]])
-
-    def get_remote_object_version(self, object_type, module_name):
-        res = self.cmd([
-            "kubectl", "get", object_type, module_name,
-            "-o=jsonpath='{$.metadata.annotations.file_version}'"
-        ], get_stdout=True)
-        if res.returncode != 0:
-            output = res.stderr.decode("utf-8").strip("'")
-            # Pokud jde o prvni deployment, tak remove version nemame.
-            if "Error from server (NotFound)" in output:
-                return None
-
-        assert res.returncode == 0, output
-        try:
-            output = int(res.stdout.decode("utf-8").strip("'"))
-        except Exception:
-            output = None
-        return output
 
     def send_yaml_files_to_gitlab(self, files: List[str], commit_message: str = "SOS nova verze") -> None:
 
