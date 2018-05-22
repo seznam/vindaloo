@@ -348,7 +348,7 @@ class SosTool:
 
         # Volitelne nabidneme k editaci
         if not self.args.noninteractive:
-            res = input("Vygenrovan {} chces si to jeste poeditovat? [n]:".format(template_file_name))
+            res = input("Vygenerovan {} chces si to jeste poeditovat? [n]:".format(template_file_name))
             if res in ("a", "y", "A", "Y"):
                 editor = os.getenv('EDITOR', 'vi')
                 spc = subprocess.call('{} {}'.format(editor, temp_file.name), shell=True)

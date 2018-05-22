@@ -1,7 +1,7 @@
 from distutils.core import setup
 setup(
     name='sostool',
-    version='1.2.15',
+    version='1.3.1',
     install_requires=[
         'pystache',
     ],
