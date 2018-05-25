@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+import argparse
+import json
 import os
 import shutil
 import sys
@@ -8,13 +10,12 @@ import tempfile
 from typing import List
 
 import pystache
-from sostool import config
 
-from sostool.git_integration import Git
+from . import config
+from .git_integration import Git
 
 YES_OPTIONS = ["y", "Y", "a", "A"]
 
-DEBUG = False
 NONE = "base"
 DEV = "dev"
 TEST = "test"
@@ -39,10 +40,12 @@ SUCCESS_REPLY = ("Y", "y", "a", "A")
 
 
 class SosTool:
+    """
+    Nastroj pro usnadneni prace s dockerem a kubernetes
+    """
 
     def __init__(self):
         self.config_module = None
-        self.batch_mode = False
 
     def am_i_logged_in(self):
         spc = subprocess.call(
@@ -53,8 +56,8 @@ class SosTool:
         )
         return spc == 0
 
-    def k8s_login(self, options):
-        locality = options[0] if options else "ko"  # KO je default, asi by chtelo vymyslet lepe
+    def k8s_login(self):
+        locality = self.args.cluster
         temp_file = tempfile.NamedTemporaryFile()
         temp_file.write(bytes(KUBE_LOGIN_SCRIPT, 'utf-8'))
         temp_file.flush()
@@ -83,11 +86,8 @@ class SosTool:
         os.makedirs(desired_dir, exist_ok=True)
         return desired_dir
 
-    def k8s_deploy(self, options):
-        if not options:
-            self.fail("Musite zadat prostredi ktere chcete nasadit.")
-
-        dep_env = options[0]
+    def k8s_deploy(self):
+        dep_env = self.args.environment
 
         if dep_env not in LOCAL_ENVS:
             self.fail("Musite zadat EXISTUJICI prostredi ktere chcete nasadit. {} nezname.".format(dep_env))
@@ -116,13 +116,6 @@ class SosTool:
             if obj_type not in self.config_module.K8S_OBJECTS:
                 continue  # Pokud tenhle typ nema tak jedeme dal
             for yaml_conf in self.config_module.K8S_OBJECTS[obj_type]:
-                remote_version = self.get_remote_object_version(obj_type, yaml_conf['config']['ident_label'])
-                if remote_version == yaml_conf['config']['file_version']:
-                    print("Preskakuji {} nezmenil se".format(yaml_conf['template']))
-                    continue
-                elif not remote_version:
-                    print("Na serveru zatim neni zadna verze.")
-
                 temp_file = self.create_file(yaml_conf['template'], yaml_conf['config'])
 
                 if not temp_file:
@@ -153,15 +146,13 @@ class SosTool:
                     print("")
                     print(todo_file.read())
 
-    def print_usage_and_exit(self):
-        print(HELP)
-        sys.exit(1)
-
     def import_config(self, env):
         # radsi checkneme ze mame soubor, abysme neimportovali nejaky jiny modul z path...
         if not os.path.isfile("k8s/{}.py".format(env)):
             return None
 
+        versions = json.load(open('k8s/versions.json'))
+        sys.modules['versions'] = versions
         sys.path.insert(0, "k8s")
 
         try:
@@ -179,7 +170,7 @@ class SosTool:
         return os.path.isdir("k8s")
 
     def cmd(self, command, get_stdout=False):
-        if DEBUG:
+        if self.args.debug:
             print("CALL", command)
 
         kwargs = {}
@@ -188,7 +179,7 @@ class SosTool:
             kwargs['stderr'] = subprocess.PIPE
 
         return subprocess.run(command, **kwargs)
-    
+
     def cmd_check(self, command, get_stdout=False):
         return self.cmd(command, get_stdout).returncode == 0
 
@@ -206,8 +197,16 @@ class SosTool:
     def build_images(self):
         """Spusti build image bez cachovani"""
         for conf in self.config_module.DOCKER_FILES:
+            if self.args.image:
+                image_name = conf['config']['image_name']
+                # jmeno bez hostu, napr. sos/adminserver
+                pure_image_name = image_name[image_name.index('/') + 1:]
+                if pure_image_name != self.args.image:
+                    print('preskakuju image {}'.format(pure_image_name))
+                    continue
+
             self.create_dockerfile(conf)
-            if conf.get('pre_build_msg'):
+            if conf.get('pre_build_msg') and not self.args.noninteractive:
                 if not self.confirm("{}\nPokracujeme?".format(conf['pre_build_msg'])):
                     continue
             res = self.cmd([
@@ -250,7 +249,7 @@ class SosTool:
 
     def collect_remote_versions(self, only_env=None):
         remote_versions = {}
-        for env in K8S_NAMESPACES.keys():
+        for env in K8S_NAMESPACES:
             if only_env and only_env != env:
                 continue
 
@@ -271,9 +270,9 @@ class SosTool:
 
         return remote_versions
 
-    def collect_versions(self, options):
-        local_ = self.collect_local_versions(options[0] if options else None)
-        remote_ = self.collect_remote_versions(options[0] if options else None)
+    def collect_versions(self):
+        local_ = self.collect_local_versions(self.args.environment)
+        remote_ = self.collect_remote_versions(self.args.environment)
         summary = {}
         for env in local_:
             for image in local_[env]:
@@ -308,27 +307,9 @@ class SosTool:
                 sys.exit(0)
             username = self.input_text("Zadejte domenove jmeno: ")
             assert self.cmd_check([
-                "kubectl", "config", "set-context", K8S_NAMESPACES[env], "--cluster=kube1.ko", 
+                "kubectl", "config", "set-context", K8S_NAMESPACES[env], "--cluster=kube1.ko",
                 "--namespace={}".format(K8S_NAMESPACES[env]), "--user={}".format(username)])
             assert self.cmd_check(["kubectl", "config", "use-context", K8S_NAMESPACES[env]])
-
-    def get_remote_object_version(self, object_type, module_name):
-        res = self.cmd([
-            "kubectl", "get", object_type, module_name,
-            "-o=jsonpath='{$.metadata.annotations.file_version}'"
-        ], get_stdout=True)
-        if res.returncode != 0:
-            output = res.stderr.decode("utf-8").strip("'")
-            # Pokud jde o prvni deployment, tak remove version nemame.
-            if "Error from server (NotFound)" in output:
-                return None
-
-        assert res.returncode == 0, output
-        try:
-            output = int(res.stdout.decode("utf-8").strip("'"))
-        except Exception:
-            output = None
-        return output
 
     def send_yaml_files_to_gitlab(self, files: List[str], commit_message: str = "SOS nova verze") -> None:
 
@@ -369,8 +350,8 @@ class SosTool:
         temp_file.seek(0)
 
         # Volitelne nabidneme k editaci
-        if not self.batch_mode:
-            res = input("Vygenrovan {} chces si to jeste poeditovat? [n]:".format(template_file_name))
+        if not self.args.noninteractive:
+            res = input("Vygenerovan {} chces si to jeste poeditovat? [n]:".format(template_file_name))
             if res in ("a", "y", "A", "Y"):
                 editor = os.getenv('EDITOR', 'vi')
                 spc = subprocess.call('{} {}'.format(editor, temp_file.name), shell=True)
@@ -383,35 +364,52 @@ class SosTool:
     def create_dockerfile(self, conf):
         self.create_file(conf['template'], conf['config'], force_dest_file="Dockerfile")
 
-    def do_command(self, command, options):
+    def do_command(self):
+        command = self.args.command
 
         if command == "build":
             self.build_images()
         elif command == "push":
             self.push_images()
         elif command == "versions":
-            self.collect_versions(options)
+            self.collect_versions()
         elif command == "kubelogin":
-            self.k8s_login(options)
+            self.k8s_login()
         elif command == "deploy":
-            self.k8s_deploy(options)
+            self.k8s_deploy()
 
     def main(self):
+        parser = argparse.ArgumentParser(description=self.__class__.__doc__)
+        parser.add_argument('--debug', action='store_true')
+        parser.add_argument('--noninteractive', action='store_true')
+
+        subparsers = parser.add_subparsers(title='commands', dest='command')
+
+        build_parser = subparsers.add_parser('build', help='ubali Docker image (vsechny)')
+        build_parser.add_argument('image', help='image, ktery chceme ubildit', nargs='?')
+
+        subparsers.add_parser('push', help='pushne docker image (vsechny)')
+
+        versions_parser = subparsers.add_parser('versions', help='vypise verze vsech imagu a srovna s clusterem')
+        versions_parser.add_argument('environment', help='env pro ktery chceme verze zobrazit', choices=LOCAL_ENVS, nargs='?')
+
+        login_parser = subparsers.add_parser('kubelogin', help='prihlasi se do kubernetu')
+        login_parser.add_argument('cluster', choices=('ko', 'ng'), default='ko', nargs='?')
+
+        deploy_parser = subparsers.add_parser('deploy', help='nasadi zmeny do clusteru')
+        deploy_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
+
+        self.args, _ = parser.parse_known_args()
 
         self.config_module = self.import_config(NONE)
 
         if not self.check_current_dir():
             self.fail("Adresar neobsahuje slozku k8s nebo Dockerfile. Jsme uvnitr modulu?")
 
-        if len(sys.argv) < 2:
-            self.print_usage_and_exit()
-
-        command = sys.argv[1]
-
-        if not self.am_i_logged_in() and command != "kubelogin":
+        if not self.am_i_logged_in() and self.args.command != "kubelogin":
             self.fail("Nejste prihlaseni, zkuste 'sostool kubelogin'")
 
-        self.do_command(command, sys.argv[2:])
+        self.do_command()
 
 
 KUBE_LOGIN_SCRIPT = r"""#!/bin/bash
@@ -471,11 +469,11 @@ if [ -z "$(which kubectl)" ]; then
 fi
 
 # Install certificate if not there
-if [ ! -f ${ca_pem} ]; then 
-    curl -sS ${ca_pem_url} > ${ca_pem} 
-fi 
- 
-# show LOGIN-NOTES.txt file 
+if [ ! -f ${ca_pem} ]; then
+    curl -sS ${ca_pem_url} > ${ca_pem}
+fi
+
+# show LOGIN-NOTES.txt file
 curl --max-time 1 -k https://gitlab.kancelar.seznam.cz/ultra/SCIF/k8s/documentatio n/raw/info-notice-to-gitlab-pages/LOGIN-NOTES.txt 2>/dev/null || true
 
 dex_login_form_uri="${dex_uri}/auth?client_id=${dex_client_id}&client_secret=${dex_client_secret}&redirect_uri=${dex_redirect_uri}&scope=${dex_scope}&response_type=code"
@@ -505,23 +503,6 @@ kubectl config set-cluster ${kube_cluster} --server=${kube_apiserver} --certific
 kubectl config set-context ${kube_cluster} --cluster=${kube_cluster} --namespace=${kube_default_ns} --user=${username}-${dc}
 kubectl config use-context ${kube_cluster}
 kubectl config set-credentials "${username}-${dc}" --token="${token}"
-"""
-
-HELP = """
-./sostool <command> [options, ...]
-
-commands:
-
-build - ubali Docker image (vsechny)
-
-push - pushne docker image (vsechny)
-
-versions - vypise verze vsech imagu a srovna s clusterem
-
-kubelogin <ko|ng> - prihlasi se do kubernetu
-
-deploy <env> - nasadi zmeny do clusteru
-
 """
 
 
