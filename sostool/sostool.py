@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import argparse
+import json
 import os
 import shutil
 import sys
@@ -150,6 +151,8 @@ class SosTool:
         if not os.path.isfile("k8s/{}.py".format(env)):
             return None
 
+        versions = json.load(open('k8s/versions.json'))
+        sys.modules['versions'] = versions
         sys.path.insert(0, "k8s")
 
         try:
