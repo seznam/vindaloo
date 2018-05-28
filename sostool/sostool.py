@@ -220,16 +220,24 @@ class SosTool:
             if self.args.dryrun:
                 continue
 
-            res = self.cmd([
+            command_args = [
                 "docker",
                 "build",
                 "--no-cache",
                 "-t",
                 self.image_name(conf['config']),
+            ]
+            if self.args.latest:
+                command_args.extend([
+                    '-t',
+                    conf['config']['image_name'] + ':latest',
+                ])
+            command_args.extend([
                 "-f",
                 "Dockerfile",
                 conf.get('context_dir', '.'),
             ])
+            res = self.cmd(command_args)
             assert res.returncode == 0
 
     def push_images(self):
@@ -240,6 +248,9 @@ class SosTool:
                 continue
             res = self.cmd(["docker", "push", self.image_name(conf['config'])])
             assert res.returncode == 0
+            if self.args.latest:
+                res = self.cmd(["docker", "push", conf['config']['image_name'] + ':latest'])
+                assert res.returncode == 0
 
     def _strip_image_name(self, image_name):
         if image_name.startswith("doc.ker"):
@@ -423,8 +434,10 @@ class SosTool:
 
         build_parser = subparsers.add_parser('build', help='ubali Docker image (vsechny)')
         build_parser.add_argument('image', help='image, ktery chceme ubildit', nargs='?')
+        build_parser.add_argument('--latest', help='tagnout image i jako latest', action='store_true')
 
-        subparsers.add_parser('push', help='pushne docker image (vsechny)')
+        push_parser = subparsers.add_parser('push', help='pushne docker image (vsechny)')
+        push_parser.add_argument('--latest', help='pushnout image i jako latest', action='store_true')
 
         kubeenv_parser = subparsers.add_parser('kubeenv', help='switchne aktualni kubernetes context v ENV')
         kubeenv_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
