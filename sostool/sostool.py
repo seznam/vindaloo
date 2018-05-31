@@ -86,6 +86,12 @@ class SosTool:
         os.makedirs(desired_dir, exist_ok=True)
         return desired_dir
 
+    def k8s_select_env(self):
+        dep_env = self.args.environment
+        if dep_env not in LOCAL_ENVS:
+            self.fail("Musite zadat EXISTUJICI prostredi ktere chcete nasadit. {} nezname.".format(dep_env))
+        self.select_k8s_env(dep_env)
+
     def k8s_deploy(self):
         dep_env = self.args.environment
 
@@ -377,6 +383,8 @@ class SosTool:
             self.k8s_login()
         elif command == "deploy":
             self.k8s_deploy()
+        elif command == "kubeenv":
+            self.k8s_select_env()
 
     def main(self):
         parser = argparse.ArgumentParser(description=self.__class__.__doc__)
@@ -389,6 +397,9 @@ class SosTool:
         build_parser.add_argument('image', help='image, ktery chceme ubildit', nargs='?')
 
         subparsers.add_parser('push', help='pushne docker image (vsechny)')
+
+        kubeenv_parser = subparsers.add_parser('kubeenv', help='switchne aktualni kubernetes context v ENV')
+        kubeenv_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
 
         versions_parser = subparsers.add_parser('versions', help='vypise verze vsech imagu a srovna s clusterem')
         versions_parser.add_argument('environment', help='env pro ktery chceme verze zobrazit', choices=LOCAL_ENVS, nargs='?')
