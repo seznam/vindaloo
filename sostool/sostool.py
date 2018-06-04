@@ -46,6 +46,7 @@ class SosTool:
 
     def __init__(self):
         self.config_module = None
+        self.args = None
 
     def am_i_logged_in(self):
         spc = subprocess.call(
@@ -142,7 +143,7 @@ class SosTool:
 
         if deploy_dir:
             print("Deployment pripraven v adresari {}.".format(deploy_dir))
-            if yaml_files:
+            if yaml_files and not self.args.dryrun:
                 if self.confirm("Mam to rovnou poslat do gitlabu k nasazeni?"):
                     self.send_yaml_files_to_gitlab(yaml_files)
                     print("OK, je to v mastru.")
@@ -215,6 +216,10 @@ class SosTool:
             if conf.get('pre_build_msg') and not self.args.noninteractive:
                 if not self.confirm("{}\nPokracujeme?".format(conf['pre_build_msg'])):
                     continue
+
+            if self.args.dryrun:
+                continue
+
             res = self.cmd([
                 "docker",
                 "build",
@@ -230,6 +235,9 @@ class SosTool:
     def push_images(self):
         """Spusti push do repa"""
         for conf in self.config_module.DOCKER_FILES:
+            if self.args.dryrun:
+                print("spoustel bych: ", ["docker", "push", self.image_name(conf['config'])])
+                continue
             res = self.cmd(["docker", "push", self.image_name(conf['config'])])
             assert res.returncode == 0
 
@@ -316,10 +324,11 @@ class SosTool:
                 "kubectl", "config", "set-context", K8S_NAMESPACES[env], "--cluster=kube1.ko",
                 "--namespace={}".format(K8S_NAMESPACES[env]), "--user={}".format(username)])
             assert self.cmd_check(["kubectl", "config", "use-context", K8S_NAMESPACES[env]])
+            print("Prostredi zmeneneno na {}({})".format(env, K8S_NAMESPACES[env]))
 
     def send_yaml_files_to_gitlab(self, files: List[str], commit_message: str = "SOS nova verze") -> None:
 
-        if not files:
+        if not files or self.args.dryrun:
             return
         saved_dir = os.getcwd()  # Sem se pak budeme vracet
         try:
@@ -368,7 +377,25 @@ class SosTool:
         return temp_file
 
     def create_dockerfile(self, conf):
-        self.create_file(conf['template'], conf['config'], force_dest_file="Dockerfile")
+
+        tmp_config = {}
+
+        # Pokud jsou includy, tak je predgenerujeme a pridame do kontextu
+        if 'includes' in conf:
+            for key, rel_path in conf['includes'].items():
+                assert os.path.exists(rel_path)
+                with open(rel_path, "r") as include_file:
+                    renderer = pystache.Renderer()
+                    # Naparsujeme sablonu
+                    template = pystache.parse(include_file.read())
+                    # vezmeme si z konfigurace context pro Dockerfile a vyrenderuje
+                    data = renderer.render(template, conf['config'])
+                    tmp_config.setdefault('includes', {})[key] = data
+
+        # Pripiseme tam konfiguraci
+        tmp_config.update(conf['config'])
+
+        self.create_file(conf['template'], tmp_config, force_dest_file="Dockerfile")
 
     def do_command(self):
         command = self.args.command
@@ -390,6 +417,7 @@ class SosTool:
         parser = argparse.ArgumentParser(description=self.__class__.__doc__)
         parser.add_argument('--debug', action='store_true')
         parser.add_argument('--noninteractive', action='store_true')
+        parser.add_argument('--dryrun', action='store_true', help='Jen predstira, nedela zadne nevratne zmeny')
 
         subparsers = parser.add_subparsers(title='commands', dest='command')
 
