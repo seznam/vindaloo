@@ -423,6 +423,10 @@ class SosTool:
             self.k8s_deploy()
         elif command == "kubeenv":
             self.k8s_select_env()
+        elif command == "build-push-deploy":
+            self.build_images()
+            self.push_images()
+            self.k8s_deploy()
 
     def main(self):
         parser = argparse.ArgumentParser(description=self.__class__.__doc__)
@@ -450,6 +454,10 @@ class SosTool:
 
         deploy_parser = subparsers.add_parser('deploy', help='nasadi zmeny do clusteru')
         deploy_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
+
+        bpd_parser = subparsers.add_parser('build-push-deploy', help='udela vsechny tri kroky')
+        bpd_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
+        bpd_parser.add_argument('image', help='image, ktery chceme ubildit', nargs='?')
 
         self.args, _ = parser.parse_known_args()
 
