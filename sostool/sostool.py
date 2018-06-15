@@ -123,6 +123,9 @@ class SosTool:
             if obj_type not in self.config_module.K8S_OBJECTS:
                 continue  # Pokud tenhle typ nema tak jedeme dal
             for yaml_conf in self.config_module.K8S_OBJECTS[obj_type]:
+
+                temp_config = self.get_enriched_config_context(yaml_conf)
+
                 temp_file = self.create_file(yaml_conf['template'], yaml_conf['config'])
 
                 if not temp_file:
@@ -203,6 +206,7 @@ class SosTool:
 
     def build_images(self):
         """Spusti build image bez cachovani"""
+
         for conf in self.config_module.DOCKER_FILES:
             if self.args.image:
                 image_name = conf['config']['image_name']
@@ -387,9 +391,12 @@ class SosTool:
 
         return temp_file
 
-    def create_dockerfile(self, conf):
-
-        tmp_config = {}
+    def get_enriched_config_context(self, conf):
+        """
+        returns config with includes made from templates
+        using same config.
+        """
+        new_context = {}
 
         # Pokud jsou includy, tak je predgenerujeme a pridame do kontextu
         if 'includes' in conf:
@@ -401,10 +408,17 @@ class SosTool:
                     template = pystache.parse(include_file.read())
                     # vezmeme si z konfigurace context pro Dockerfile a vyrenderuje
                     data = renderer.render(template, conf['config'])
-                    tmp_config.setdefault('includes', {})[key] = data
+                    new_context.setdefault('includes', {})[key] = data
 
         # Pripiseme tam konfiguraci
-        tmp_config.update(conf['config'])
+        new_context.update(conf['config'])
+
+        return new_context
+
+    def create_dockerfile(self, conf):
+
+        # config with includes
+        tmp_config = self.get_enriched_config_context(conf)
 
         self.create_file(conf['template'], tmp_config, force_dest_file="Dockerfile")
 
