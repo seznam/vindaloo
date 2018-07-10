@@ -7,7 +7,7 @@ import shutil
 import sys
 import subprocess
 import tempfile
-from typing import List
+from typing import List, Set
 
 import pystache
 
@@ -246,15 +246,46 @@ class SosTool:
 
     def push_images(self):
         """Spusti push do repa"""
+
+        known_images = self._get_local_images()
+
         for conf in self.config_module.DOCKER_FILES:
+
+            image_name_ = self.image_name(conf['config'])
+
+            if self.args.image:
+                image_name = conf['config']['image_name']
+                # jmeno bez hostu, napr. sos/adminserver
+                pure_image_name = image_name[image_name.index('/') + 1:]
+                if pure_image_name != self.args.image:
+                    print('preskakuju image {}'.format(pure_image_name))
+                    continue
+
+            if image_name_ not in known_images:
+                print("preskakuji image {} neni ubuildeny...".format(image_name_))
+                continue
+
             if self.args.dryrun:
                 print("spoustel bych: ", ["docker", "push", self.image_name(conf['config'])])
                 continue
-            res = self.cmd(["docker", "push", self.image_name(conf['config'])])
+
+            res = self.cmd(["docker", "push", image_name_])
             assert res.returncode == 0
             if self.args.latest:
                 res = self.cmd(["docker", "push", conf['config']['image_name'] + ':latest'])
                 assert res.returncode == 0
+
+    def _get_local_images(self):
+        # type: () -> Set[str]
+        """
+        Zjisti jake image mame ubuildene v lokalnim dockeru, vraci set imagu v image:tag formatu.
+        """
+        res = self.cmd(["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"], get_stdout=True)
+        images = set()
+        for l in res.stdout.decode("utf-8").split("\n"):
+            stripped = l.strip()
+            images.add(stripped)
+        return images
 
     def _strip_image_name(self, image_name):
         if image_name.startswith("doc.ker"):
@@ -443,6 +474,7 @@ class SosTool:
             self.k8s_deploy()
 
     def main(self):
+
         parser = argparse.ArgumentParser(description=self.__class__.__doc__)
         parser.add_argument('--debug', action='store_true')
         parser.add_argument('--noninteractive', action='store_true')
@@ -456,6 +488,8 @@ class SosTool:
 
         push_parser = subparsers.add_parser('push', help='pushne docker image (vsechny)')
         push_parser.add_argument('--latest', help='pushnout image i jako latest', action='store_true')
+
+        push_parser.add_argument('image', help='image, ktery chceme ubuildit', nargs='?')
 
         kubeenv_parser = subparsers.add_parser('kubeenv', help='switchne aktualni kubernetes context v ENV')
         kubeenv_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
