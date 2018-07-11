@@ -506,6 +506,7 @@ class SosTool:
         bpd_parser = subparsers.add_parser('build-push-deploy', help='udela vsechny tri kroky')
         bpd_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
         bpd_parser.add_argument('image', help='image, ktery chceme ubildit', nargs='?')
+        bpd_parser.add_argument('--latest', help='pushnout image i jako latest', action='store_true')
 
         self.args, _ = parser.parse_known_args()
 
