@@ -212,7 +212,7 @@ class SosTool:
                 image_name = conf['config']['image_name']
                 # jmeno bez hostu, napr. sos/adminserver
                 pure_image_name = image_name[image_name.index('/') + 1:]
-                if pure_image_name != self.args.image:
+                if pure_image_name not in self.args.image:
                     print('preskakuju image {}'.format(pure_image_name))
                     continue
 
@@ -257,7 +257,7 @@ class SosTool:
                 image_name = conf['config']['image_name']
                 # jmeno bez hostu, napr. sos/adminserver
                 pure_image_name = image_name[image_name.index('/') + 1:]
-                if pure_image_name != self.args.image:
+                if pure_image_name not in self.args.image:
                     print('preskakuju image {}'.format(pure_image_name))
                     continue
 
@@ -483,13 +483,13 @@ class SosTool:
         subparsers = parser.add_subparsers(title='commands', dest='command')
 
         build_parser = subparsers.add_parser('build', help='ubali Docker image (vsechny)')
-        build_parser.add_argument('image', help='image, ktery chceme ubildit', nargs='?')
+        build_parser.add_argument('image', help='image, ktery chceme ubildit', nargs='?', action='append')
         build_parser.add_argument('--latest', help='tagnout image i jako latest', action='store_true')
 
         push_parser = subparsers.add_parser('push', help='pushne docker image (vsechny)')
         push_parser.add_argument('--latest', help='pushnout image i jako latest', action='store_true')
 
-        push_parser.add_argument('image', help='image, ktery chceme ubuildit', nargs='?')
+        push_parser.add_argument('image', help='image, ktery chceme ubuildit', nargs='?', action='append')
 
         kubeenv_parser = subparsers.add_parser('kubeenv', help='switchne aktualni kubernetes context v ENV')
         kubeenv_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
@@ -505,7 +505,7 @@ class SosTool:
 
         bpd_parser = subparsers.add_parser('build-push-deploy', help='udela vsechny tri kroky')
         bpd_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
-        bpd_parser.add_argument('image', help='image, ktery chceme ubildit', nargs='?')
+        bpd_parser.add_argument('image', help='image, ktery chceme ubuildit/pushnout', nargs='?', action='append')
         bpd_parser.add_argument('--latest', help='pushnout image i jako latest', action='store_true')
 
         self.args, _ = parser.parse_known_args()
