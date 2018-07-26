@@ -204,15 +204,23 @@ class SosTool:
         )
         return image_name
 
+
+    @property
+    def args_image(self):
+        """
+        Vraci seznam imagu. Cisti argsy od None
+        """
+        return [x for x in self.args.image if x]
+
     def build_images(self):
         """Spusti build image bez cachovani"""
 
         for conf in self.config_module.DOCKER_FILES:
-            if self.args.image:
+            if self.args_image:
                 image_name = conf['config']['image_name']
                 # jmeno bez hostu, napr. sos/adminserver
                 pure_image_name = image_name[image_name.index('/') + 1:]
-                if pure_image_name not in self.args.image:
+                if pure_image_name not in self.args_image:
                     print('preskakuju image {}'.format(pure_image_name))
                     continue
 
@@ -253,11 +261,11 @@ class SosTool:
 
             image_name_ = self.image_name(conf['config'])
 
-            if self.args.image:
+            if self.args_image:
                 image_name = conf['config']['image_name']
                 # jmeno bez hostu, napr. sos/adminserver
                 pure_image_name = image_name[image_name.index('/') + 1:]
-                if pure_image_name not in self.args.image:
+                if pure_image_name not in self.args_image:
                     print('preskakuju image {}'.format(pure_image_name))
                     continue
 
