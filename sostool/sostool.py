@@ -259,29 +259,47 @@ class SosTool:
 
         for conf in self.config_module.DOCKER_FILES:
 
-            image_name_ = self.image_name(conf['config'])
+            image_name_with_tag = self.image_name(conf['config'])
+            image_name = conf['config']['image_name']
+            # jmeno bez hostu, napr. sos/adminserver
+            pure_image_name = image_name[image_name.index('/') + 1:]
 
             if self.args_image:
-                image_name = conf['config']['image_name']
-                # jmeno bez hostu, napr. sos/adminserver
-                pure_image_name = image_name[image_name.index('/') + 1:]
                 if pure_image_name not in self.args_image:
                     print('preskakuju image {}'.format(pure_image_name))
                     continue
 
-            if image_name_ not in known_images:
-                print("preskakuji image {} neni ubuildeny...".format(image_name_))
+            if image_name_with_tag not in known_images:
+                print("preskakuji image {} neni ubuildeny...".format(image_name_with_tag))
                 continue
+
+            if self.args.registry:
+                # zmenime v image_name registry
+                conf['config']['image_name'] = '{}/{}'.format(self.args.registry, pure_image_name)
+                source_image = image_name_with_tag
+                image_name_with_tag = self.image_name(conf['config'])
+                # tagneme puvodni image na jmeno s novou registry
+                self.tag_image(source_image, image_name_with_tag)
 
             if self.args.dryrun:
-                print("spoustel bych: ", ["docker", "push", self.image_name(conf['config'])])
+                print("spoustel bych: ", ["docker", "push", image_name_with_tag])
                 continue
 
-            res = self.cmd(["docker", "push", image_name_])
+            res = self.cmd(["docker", "push", image_name_with_tag])
             assert res.returncode == 0
             if self.args.latest:
                 res = self.cmd(["docker", "push", conf['config']['image_name'] + ':latest'])
                 assert res.returncode == 0
+
+    def tag_image(self, source_image, target_image):
+        """Otaguje image"""
+
+        if self.args.dryrun:
+            print("spoustel bych: ", ["docker", "tag", source_image, target_image])
+            return
+
+        res = self.cmd(["docker", "tag", source_image, target_image])
+        assert res.returncode == 0
 
     def _get_local_images(self):
         # type: () -> Set[str]
@@ -497,9 +515,9 @@ class SosTool:
         build_parser.add_argument('--latest', help='tagnout image i jako latest', action='store_true')
 
         push_parser = subparsers.add_parser('push', help='pushne docker image (vsechny)')
+        push_parser.add_argument('image', help='image, ktery chceme pushnout', nargs='?', action='append')
         push_parser.add_argument('--latest', help='pushnout image i jako latest', action='store_true')
-
-        push_parser.add_argument('image', help='image, ktery chceme ubuildit', nargs='?', action='append')
+        push_parser.add_argument('--registry', help='tagne image a pushne do jine registry')
 
         kubeenv_parser = subparsers.add_parser('kubeenv', help='switchne aktualni kubernetes context v ENV')
         kubeenv_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
