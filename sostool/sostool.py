@@ -483,6 +483,8 @@ class SosTool:
 
     def main(self):
 
+        NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy')
+
         parser = argparse.ArgumentParser(description=self.__class__.__doc__)
         parser.add_argument('--debug', action='store_true')
         parser.add_argument('--noninteractive', action='store_true')
@@ -523,7 +525,7 @@ class SosTool:
         if not self.check_current_dir():
             self.fail("Adresar neobsahuje slozku k8s nebo Dockerfile. Jsme uvnitr modulu?")
 
-        if not self.am_i_logged_in() and self.args.command != "kubelogin":
+        if not self.am_i_logged_in() and self.args.command in NEEDS_K8S_LOGIN:
             self.fail("Nejste prihlaseni, zkuste 'sostool kubelogin'")
 
         self.do_command()
