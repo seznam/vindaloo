@@ -252,8 +252,35 @@ class SosTool:
             res = self.cmd(command_args)
             assert res.returncode == 0
 
+    def pull_images(self):
+        """Pullne image z registry"""
+        known_images = self._get_local_images()
+
+        for conf in self.config_module.DOCKER_FILES:
+
+            image_name_with_tag = self.image_name(conf['config'])
+            image_name = conf['config']['image_name']
+            # jmeno bez hostu, napr. sos/adminserver
+            pure_image_name = image_name[image_name.index('/') + 1:]
+
+            if self.args_image:
+                if pure_image_name not in self.args_image:
+                    print('preskakuju image {}'.format(pure_image_name))
+                    continue
+
+            if image_name_with_tag in known_images:
+                print("preskakuji image {}, je uz pullnuty...".format(image_name_with_tag))
+                continue
+
+            if self.args.dryrun:
+                print("spoustel bych: ", ["docker", "pull", image_name_with_tag])
+                continue
+
+            res = self.cmd(["docker", "pull", image_name_with_tag])
+            assert res.returncode == 0
+
     def push_images(self):
-        """Spusti push do repa"""
+        """Spusti push do registry"""
 
         known_images = self._get_local_images()
 
@@ -484,6 +511,8 @@ class SosTool:
 
         if command == "build":
             self.build_images()
+        elif command == "pull":
+            self.pull_images()
         elif command == "push":
             self.push_images()
         elif command == "versions":
@@ -513,6 +542,9 @@ class SosTool:
         build_parser = subparsers.add_parser('build', help='ubali Docker image (vsechny)')
         build_parser.add_argument('image', help='image, ktery chceme ubildit', nargs='?', action='append')
         build_parser.add_argument('--latest', help='tagnout image i jako latest', action='store_true')
+
+        pull_parser = subparsers.add_parser('pull', help='pullne docker image (vsechny)')
+        pull_parser.add_argument('image', help='image, ktery chceme pullnout', nargs='?', action='append')
 
         push_parser = subparsers.add_parser('push', help='pushne docker image (vsechny)')
         push_parser.add_argument('image', help='image, ktery chceme pushnout', nargs='?', action='append')
