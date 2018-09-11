@@ -181,7 +181,10 @@ class SosTool:
 
     def cmd(self, command, get_stdout=False):
         if self.args.debug:
-            print("CALL", command)
+            print("CALL: ", ' '.join(command))
+        if self.args.dryrun:
+            print("CALL: ", ' '.join(command))
+            return subprocess.run('true')  # zavolam 'true' abych mohl vratit vysledek
 
         kwargs = {}
         if get_stdout:
@@ -229,9 +232,6 @@ class SosTool:
                 if not self.confirm("{}\nPokracujeme?".format(conf['pre_build_msg'])):
                     continue
 
-            if self.args.dryrun:
-                continue
-
             command_args = [
                 "docker",
                 "build",
@@ -272,10 +272,6 @@ class SosTool:
                 print("preskakuji image {}, je uz pullnuty...".format(image_name_with_tag))
                 continue
 
-            if self.args.dryrun:
-                print("spoustel bych: ", ["docker", "pull", image_name_with_tag])
-                continue
-
             res = self.cmd(["docker", "pull", image_name_with_tag])
             assert res.returncode == 0
 
@@ -308,10 +304,6 @@ class SosTool:
                 # tagneme puvodni image na jmeno s novou registry
                 self.tag_image(source_image, image_name_with_tag)
 
-            if self.args.dryrun:
-                print("spoustel bych: ", ["docker", "push", image_name_with_tag])
-                continue
-
             res = self.cmd(["docker", "push", image_name_with_tag])
             assert res.returncode == 0
             if self.args.latest:
@@ -320,11 +312,6 @@ class SosTool:
 
     def tag_image(self, source_image, target_image):
         """Otaguje image"""
-
-        if self.args.dryrun:
-            print("spoustel bych: ", ["docker", "tag", source_image, target_image])
-            return
-
         res = self.cmd(["docker", "tag", source_image, target_image])
         assert res.returncode == 0
 
@@ -567,6 +554,7 @@ class SosTool:
         bpd_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
         bpd_parser.add_argument('image', help='image, ktery chceme ubuildit/pushnout', nargs='?', action='append')
         bpd_parser.add_argument('--latest', help='pushnout image i jako latest', action='store_true')
+        bpd_parser.add_argument('--registry', help='tagne image a pushne do jine registry')
 
         self.args, _ = parser.parse_known_args()
 
