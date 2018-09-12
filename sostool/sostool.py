@@ -35,7 +35,6 @@ K8S_OBJECT_TYPES = [
     "podpreset", "deployment", "service", "ingres", "cronjob", "job"
 ]
 
-DEFAULT_DEPLOY_DIR = "./deploy_files"
 SUCCESS_REPLY = ("Y", "y", "a", "A")
 
 
@@ -77,16 +76,6 @@ class SosTool:
             text = input(message)
         return text
 
-    def create_prod_deploy_dir(self):
-        desired_dir = input("Do jakeho adresare chcete vystup? [{}]: ".format(DEFAULT_DEPLOY_DIR))
-        if not desired_dir:
-            desired_dir = DEFAULT_DEPLOY_DIR
-        if os.path.isdir(desired_dir):
-            if not self.confirm("Adresar jiz existuje, pouzijeme ho?"):
-                return self.create_prod_deploy_dir()
-        os.makedirs(desired_dir, exist_ok=True)
-        return desired_dir
-
     def k8s_select_env(self):
         dep_env = self.args.environment
         if dep_env not in LOCAL_ENVS:
@@ -105,17 +94,6 @@ class SosTool:
         # prepneme se
         self.select_k8s_env(dep_env)
 
-        # pokud je cilem produkce, tak jen budeme stosovat do adresare
-        if dep_env == PROD:
-            deploy_dir = self.create_prod_deploy_dir()
-
-            # Vypiseme hlavicku to-do, uz proto aby se v pripade recyklace adresare nehromadily stare zaznamy :-)
-            with open(os.path.join(deploy_dir, "todo.txt"), "w") as todo_file:
-                todo_file.write("K8S Nasazeni:\n\n")
-
-        else:
-            deploy_dir = None
-
         # pro jednotlive typy souboru vygenerujeme yaml soubory a nasadime je
 
         yaml_files = []
@@ -131,30 +109,8 @@ class SosTool:
                 if not temp_file:
                     self.fail("Chyba pri vytvareni deployment souboru")
 
-                if dep_env == PROD:
-                    temp_file_name = "sos-{}_{}".format(yaml_conf['config']['ident_label'], yaml_conf['template'])
-                    # potrebujeme abspath, protozer pak hodne menime adresare
-                    deploy_file = os.path.abspath(os.path.join(deploy_dir, temp_file_name))
-                    shutil.copy(temp_file.name, deploy_file)
-                    with open(os.path.join(deploy_dir, "todo.txt"), "a+") as todo_file:
-                        todo_file.write(" ".join(["kubectl", "apply", "-f", temp_file_name]))
-                        todo_file.write("\n")
-                    yaml_files.append(deploy_file)
-                else:
-                    res = self.cmd(["kubectl", "apply", "-f", temp_file.name])
-                    assert res.returncode == 0
-
-        if deploy_dir:
-            print("Deployment pripraven v adresari {}.".format(deploy_dir))
-            if yaml_files and not self.args.dryrun:
-                if self.confirm("Mam to rovnou poslat do gitlabu k nasazeni?"):
-                    self.send_yaml_files_to_gitlab(yaml_files)
-                    print("OK, je to v mastru.")
-
-            if self.confirm("Mam vypsat noticky na deploy?"):
-                with open(os.path.join(deploy_dir, "todo.txt"), "r") as todo_file:
-                    print("")
-                    print(todo_file.read())
+                res = self.cmd(["kubectl", "apply", "-f", temp_file.name])
+                assert res.returncode == 0
 
     def import_config(self, env):
         # radsi checkneme ze mame soubor, abysme neimportovali nejaky jiny modul z path...
