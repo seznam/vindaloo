@@ -19,15 +19,15 @@ YES_OPTIONS = ["y", "Y", "a", "A"]
 NONE = "base"
 DEV = "dev"
 TEST = "test"
-STAGE = "stage"
+STAGING = "staging"
 PROD = "prod"
 
-LOCAL_ENVS = [DEV, TEST, STAGE, PROD]
+LOCAL_ENVS = [DEV, TEST, STAGING, PROD]
 
 K8S_NAMESPACES = {
     DEV: "sos-dev",
     TEST: "sos-test",
-    STAGE: "sos-stage",
+    STAGING: "sos-staging",
     PROD: "sos-stable",
 }
 
