@@ -155,10 +155,10 @@ class SosTool:
         print(msg)
         sys.exit(-1)
 
-    def image_name_with_tag(self, conf):
+    def image_name_with_tag(self, conf, tag=None):
         image_name = "{}:{}".format(
             conf['image_name'],
-            conf['version'],
+            tag or conf['version'],
         )
         pure_image_name = self._strip_image_name(image_name)
 
@@ -268,8 +268,9 @@ class SosTool:
 
             res = self.cmd(["docker", "push", image_name_with_tag])
             assert res.returncode == 0
+
             if self.args.latest:
-                res = self.cmd(["docker", "push", conf['config']['image_name'] + ':latest'])
+                res = self.cmd(["docker", "push", self.image_name_with_tag(conf['config'], 'latest')])
                 assert res.returncode == 0
 
     def tag_image(self, source_image, target_image):
