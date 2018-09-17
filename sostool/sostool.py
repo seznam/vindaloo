@@ -166,7 +166,7 @@ class SosTool:
 
     @property
     def registry(self):
-        if self.args.environment in ENVS_WITH_PROD_REGISTRY:
+        if hasattr(self.args, 'environment') and self.args.environment in ENVS_WITH_PROD_REGISTRY:
             return 'doc.ker'
         return 'doc.ker.dev.dszn.cz'
 
