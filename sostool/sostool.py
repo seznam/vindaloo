@@ -96,14 +96,12 @@ class SosTool:
         self.select_k8s_env(dep_env)
 
         # pro jednotlive typy souboru vygenerujeme yaml soubory a nasadime je
-
-        yaml_files = []
         for obj_type in K8S_OBJECT_TYPES:
             if obj_type not in self.config_module.K8S_OBJECTS:
                 continue  # Pokud tenhle typ nema tak jedeme dal
             for yaml_conf in self.config_module.K8S_OBJECTS[obj_type]:
-
-                temp_config = self.get_enriched_config_context(yaml_conf)
+                # pridame registry
+                yaml_conf['config']['registry'] = self.registry
 
                 temp_file = self.create_file(yaml_conf['template'], yaml_conf['config'])
 
@@ -121,10 +119,6 @@ class SosTool:
         versions = json.load(open('k8s/versions.json'))
         sys.modules['versions'] = versions
         sys.path.insert(0, "k8s")
-
-        sys.modules['config'] = {
-            'registry': self.registry
-        }
 
         try:
             if sys.version_info[0] > 2:
