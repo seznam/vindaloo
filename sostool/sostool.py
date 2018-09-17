@@ -12,7 +12,6 @@ from typing import List, Set
 import pystache
 
 from . import config
-from .git_integration import Git
 
 YES_OPTIONS = ["y", "Y", "a", "A"]
 
@@ -30,6 +29,8 @@ K8S_NAMESPACES = {
     STAGING: "sos-staging",
     PROD: "sos-stable",
 }
+
+ENVS_WITH_PROD_REGISTRY = [STAGING, PROD]
 
 K8S_OBJECT_TYPES = [
     "podpreset", "deployment", "service", "ingres", "cronjob", "job"
@@ -95,14 +96,12 @@ class SosTool:
         self.select_k8s_env(dep_env)
 
         # pro jednotlive typy souboru vygenerujeme yaml soubory a nasadime je
-
-        yaml_files = []
         for obj_type in K8S_OBJECT_TYPES:
             if obj_type not in self.config_module.K8S_OBJECTS:
                 continue  # Pokud tenhle typ nema tak jedeme dal
             for yaml_conf in self.config_module.K8S_OBJECTS[obj_type]:
-
-                temp_config = self.get_enriched_config_context(yaml_conf)
+                # pridame registry
+                yaml_conf['config']['registry'] = self.registry
 
                 temp_file = self.create_file(yaml_conf['template'], yaml_conf['config'])
 
@@ -156,13 +155,20 @@ class SosTool:
         print(msg)
         sys.exit(-1)
 
-    def image_name(self, conf):
+    def image_name_with_tag(self, conf):
         image_name = "{}:{}".format(
             conf['image_name'],
             conf['version'],
         )
-        return image_name
+        pure_image_name = self._strip_image_name(image_name)
 
+        return '{}/{}'.format(self.registry, pure_image_name)
+
+    @property
+    def registry(self):
+        if self.args.environment in ENVS_WITH_PROD_REGISTRY:
+            return 'doc.ker'
+        return 'doc.ker.dev.dszn.cz'
 
     @property
     def args_image(self):
@@ -178,7 +184,7 @@ class SosTool:
             if self.args_image:
                 image_name = conf['config']['image_name']
                 # jmeno bez hostu, napr. sos/adminserver
-                pure_image_name = image_name[image_name.index('/') + 1:]
+                pure_image_name = self._strip_image_name(image_name)
                 if pure_image_name not in self.args_image:
                     print('preskakuju image {}'.format(pure_image_name))
                     continue
@@ -193,7 +199,7 @@ class SosTool:
                 "build",
                 "--no-cache",
                 "-t",
-                self.image_name(conf['config']),
+                self.image_name_with_tag(conf['config']),
             ]
             if self.args.latest:
                 command_args.extend([
@@ -214,10 +220,10 @@ class SosTool:
 
         for conf in self.config_module.DOCKER_FILES:
 
-            image_name_with_tag = self.image_name(conf['config'])
+            image_name_with_tag = self.image_name_with_tag(conf['config'])
             image_name = conf['config']['image_name']
             # jmeno bez hostu, napr. sos/adminserver
-            pure_image_name = image_name[image_name.index('/') + 1:]
+            pure_image_name = self._strip_image_name(image_name)
 
             if self.args_image:
                 if pure_image_name not in self.args_image:
@@ -238,10 +244,10 @@ class SosTool:
 
         for conf in self.config_module.DOCKER_FILES:
 
-            image_name_with_tag = self.image_name(conf['config'])
+            image_name_with_tag = self.image_name_with_tag(conf['config'])
             image_name = conf['config']['image_name']
             # jmeno bez hostu, napr. sos/adminserver
-            pure_image_name = image_name[image_name.index('/') + 1:]
+            pure_image_name = self._strip_image_name(image_name)
 
             if self.args_image:
                 if pure_image_name not in self.args_image:
@@ -256,7 +262,7 @@ class SosTool:
                 # zmenime v image_name registry
                 conf['config']['image_name'] = '{}/{}'.format(self.args.registry, pure_image_name)
                 source_image = image_name_with_tag
-                image_name_with_tag = self.image_name(conf['config'])
+                image_name_with_tag = self.image_name_with_tag(conf['config'])
                 # tagneme puvodni image na jmeno s novou registry
                 self.tag_image(source_image, image_name_with_tag)
 
@@ -367,27 +373,6 @@ class SosTool:
                 "--namespace={}".format(K8S_NAMESPACES[env]), "--user={}".format(username)])
             assert self.cmd_check(["kubectl", "config", "use-context", K8S_NAMESPACES[env]])
             print("Prostredi zmeneneno na {}({})".format(env, K8S_NAMESPACES[env]))
-
-    def send_yaml_files_to_gitlab(self, files: List[str], commit_message: str = "SOS nova verze") -> None:
-
-        if not files or self.args.dryrun:
-            return
-        saved_dir = os.getcwd()  # Sem se pak budeme vracet
-        try:
-            git = Git(reuse_last_repo=False)
-            git.init_workdir()
-            for _ in git.get_repo(config.TT_GIT_REPO, print_it=False):
-                pass
-            for filename in files:
-                print("{} -> {}".format(filename, os.path.join(git.get_copy_dir(), "sos-stable", os.path.basename(filename))))
-                shutil.copy(filename, os.path.join(git.get_copy_dir(), "sos-stable", os.path.basename(filename)))
-                git.add([os.path.join("sos-stable", os.path.basename(filename))])
-            git.commit(commit_message)
-            print("commitnuto")
-            git.push_master()
-            print("pushnuto")
-        finally:
-            os.chdir(saved_dir)  # vratime se do puvodniho adresare
 
     def create_file(self, template_file_name, conf, force_dest_file=None):
         data = ""
