@@ -30,6 +30,11 @@ K8S_NAMESPACES = {
     PROD: "sos-stable",
 }
 
+K8S_CLUSTERS = {
+    "ko": "kube1.ko",
+    "ng": "kube1.ng",
+}
+
 ENVS_WITH_PROD_REGISTRY = [STAGING, PROD]
 
 K8S_OBJECT_TYPES = [
@@ -81,7 +86,7 @@ class SosTool:
         dep_env = self.args.environment
         if dep_env not in LOCAL_ENVS:
             self.fail("Musite zadat EXISTUJICI prostredi ktere chcete nasadit. {} nezname.".format(dep_env))
-        self.select_k8s_env(dep_env)
+        self.select_k8s_context(dep_env, self.args.cluster)
 
     def k8s_deploy(self):
         dep_env = self.args.environment
@@ -93,7 +98,7 @@ class SosTool:
             self.fail("Musite zadat nakonfigurovane prostredi ktere chcete nasadit.")
 
         # prepneme se
-        self.select_k8s_env(dep_env)
+        self.select_k8s_context(dep_env, self.args.cluster)
 
         # pro jednotlive typy souboru vygenerujeme yaml soubory a nasadime je
         for obj_type in K8S_OBJECT_TYPES:
@@ -320,19 +325,20 @@ class SosTool:
                 continue
 
             if self.import_config(env):
-                self.select_k8s_env(env)
-                for deployment in self.config_module.K8S_OBJECTS.get("deployment", []):
-                    module_name = deployment['config']['ident_label']
-                    remote_images = self.get_k8s_deployment_version(module_name)
-                    if not remote_images:
-                        continue
-                    images = {}
-                    for remote_image in remote_images:
-                        parts = remote_image.split(":")
-                        version = parts[-1]
-                        image = self._strip_image_name(":".join(parts[:-1]))
-                        images[image] = version
-                    remote_versions[env] = images
+                for cluster in K8S_CLUSTERS:
+                    self.select_k8s_context(env, cluster)
+                    for deployment in self.config_module.K8S_OBJECTS.get("deployment", []):
+                        module_name = deployment['config']['ident_label']
+                        remote_images = self.get_k8s_deployment_version(module_name)
+                        if not remote_images:
+                            continue
+                        images = {}
+                        for remote_image in remote_images:
+                            parts = remote_image.split(":")
+                            version = parts[-1]
+                            image = self._strip_image_name(":".join(parts[:-1]))
+                            images[image] = version
+                        remote_versions.setdefault(env, {})[cluster] = images
 
         return remote_versions
 
@@ -342,18 +348,24 @@ class SosTool:
         summary = {}
         for env in local_:
             for image in local_[env]:
-                summary.setdefault(env, {}).setdefault(image, {'local': None, 'remote': None})["local"] = local_[env][image]
+                summary.setdefault(env, {}).setdefault(image, {'local': None, 'remote': {}})["local"] = local_[env][image]
         for env in remote_:
-            for image in remote_[env]:
-                summary.setdefault(env, {}).setdefault(image, {'local': None, 'remote': None})["remote"] = remote_[env][image]
+            for cluster in remote_[env]:
+                for image in remote_[env][cluster]:
+                    summary.setdefault(env, {}).setdefault(image, {'local': None, 'remote': {}})["remote"][cluster] = remote_[env][cluster][image]
 
         print("\nPro definovana prostredi vzdy obraz a verze")
         for env in summary:
             print("\n{}:".format(env))
             for image_ in summary[env]:
                 vers = summary[env][image_]
-                warning = " [ROZDILNE]" if vers["local"] != vers["remote"] else ""
-                print("Image: {} v konfigu: {}, na serveru: {} {}".format(image_, vers["local"], vers["remote"], warning))
+                warning = ""
+                for cluster in K8S_CLUSTERS:
+                    if vers["local"] != vers["remote"].get(cluster):
+                        warning = " [ROZDILNE]"
+                print("Image: {} v konfigu: {}, na serveru: {} {}".format(
+                    image_, vers["local"], vers["remote"], warning
+                ))
 
     def get_k8s_deployment_version(self, module_name):
         res = self.cmd([
@@ -366,17 +378,19 @@ class SosTool:
         else:
             return []
 
-    def select_k8s_env(self, env):
-        if not self.cmd_check(["kubectl", "config", "use-context", K8S_NAMESPACES[env]]):
-            if not self.confirm("Neni nastaven kuberneti context pro {}. Mam ho vytvorit?".format(env)):
+    def select_k8s_context(self, env, cluster):
+        context = '{}-{}'.format(K8S_NAMESPACES[env], cluster)
+
+        if not self.cmd_check(["kubectl", "config", "use-context", context]):
+            if not self.confirm("Neni nastaven kuberneti context {}. Mam ho vytvorit?".format(context)):
                 print('Deploy byl ukoncen')
                 sys.exit(0)
             username = self.input_text("Zadejte domenove jmeno: ")
             assert self.cmd_check([
-                "kubectl", "config", "set-context", K8S_NAMESPACES[env], "--cluster=kube1.ko",
-                "--namespace={}".format(K8S_NAMESPACES[env]), "--user={}".format(username)])
-            assert self.cmd_check(["kubectl", "config", "use-context", K8S_NAMESPACES[env]])
-            print("Prostredi zmeneneno na {}({})".format(env, K8S_NAMESPACES[env]))
+                "kubectl", "config", "set-context", context, "--cluster={}".format(K8S_CLUSTERS[cluster]),
+                "--namespace={}".format(K8S_NAMESPACES[env]), "--user={}-{}".format(username, cluster)])
+            assert self.cmd_check(["kubectl", "config", "use-context", context])
+            print("Prostredi zmeneneno na {} ({})".format(env, context))
 
     def create_file(self, template_file_name, conf, force_dest_file=None):
         data = ""
@@ -484,19 +498,22 @@ class SosTool:
         push_parser.add_argument('--registry', help='tagne image a pushne do jine registry')
 
         kubeenv_parser = subparsers.add_parser('kubeenv', help='switchne aktualni kubernetes context v ENV')
-        kubeenv_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
+        kubeenv_parser.add_argument('environment', help='prostredi, kam chceme switchnout', choices=LOCAL_ENVS)
+        kubeenv_parser.add_argument('cluster', help='nazev clusteru (ko/ng)', choices=K8S_CLUSTERS, default='ko', nargs='?')
 
         versions_parser = subparsers.add_parser('versions', help='vypise verze vsech imagu a srovna s clusterem')
         versions_parser.add_argument('environment', help='env pro ktery chceme verze zobrazit', choices=LOCAL_ENVS, nargs='?')
 
         login_parser = subparsers.add_parser('kubelogin', help='prihlasi se do kubernetu')
-        login_parser.add_argument('cluster', choices=('ko', 'ng'), default='ko', nargs='?')
+        login_parser.add_argument('cluster', help='nazev clusteru (ko/ng)', choices=K8S_CLUSTERS, default='ko', nargs='?')
 
         deploy_parser = subparsers.add_parser('deploy', help='nasadi zmeny do clusteru')
         deploy_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
+        deploy_parser.add_argument('cluster', help='nazev clusteru (ko/ng)', choices=K8S_CLUSTERS, default='ko', nargs='?')
 
         bpd_parser = subparsers.add_parser('build-push-deploy', help='udela vsechny tri kroky')
         bpd_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
+        bpd_parser.add_argument('cluster', help='nazev clusteru (ko/ng)', choices=K8S_CLUSTERS, default='ko', nargs='?')
         bpd_parser.add_argument('image', help='image, ktery chceme ubuildit/pushnout', nargs='?', action='append')
         bpd_parser.add_argument('--latest', help='pushnout image i jako latest', action='store_true')
         bpd_parser.add_argument('--registry', help='tagne image a pushne do jine registry')
