@@ -134,12 +134,13 @@ class SosTool:
     def check_current_dir(self):
         return os.path.isdir("k8s")
 
-    def cmd(self, command, get_stdout=False):
+    def cmd(self, command, get_stdout=False, run_always=False):
         if self.args.debug:
             print("CALL: ", ' '.join(command))
         if self.args.dryrun:
             print("CALL: ", ' '.join(command))
-            return subprocess.run('true')  # zavolam 'true' abych mohl vratit vysledek
+            if not run_always:
+                return subprocess.run('true')  # zavolam 'true' abych mohl vratit vysledek
 
         kwargs = {}
         if get_stdout:
@@ -155,14 +156,17 @@ class SosTool:
         print(msg)
         sys.exit(-1)
 
-    def image_name_with_tag(self, conf, tag=None):
+    def image_name_with_tag(self, conf, tag=None, registry=None):
         image_name = "{}:{}".format(
             conf['image_name'],
             tag or conf['version'],
         )
         pure_image_name = self._strip_image_name(image_name)
 
-        return '{}/{}'.format(self.registry, pure_image_name)
+        return '{}/{}'.format(
+            registry or self.registry,
+            pure_image_name,
+        )
 
     @property
     def registry(self):
@@ -260,9 +264,8 @@ class SosTool:
 
             if self.args.registry:
                 # zmenime v image_name registry
-                conf['config']['image_name'] = '{}/{}'.format(self.args.registry, pure_image_name)
                 source_image = image_name_with_tag
-                image_name_with_tag = self.image_name_with_tag(conf['config'])
+                image_name_with_tag = self.image_name_with_tag(conf['config'], registry=self.args.registry)
                 # tagneme puvodni image na jmeno s novou registry
                 self.tag_image(source_image, image_name_with_tag)
 
@@ -270,7 +273,7 @@ class SosTool:
             assert res.returncode == 0
 
             if self.args.latest:
-                res = self.cmd(["docker", "push", self.image_name_with_tag(conf['config'], 'latest')])
+                res = self.cmd(["docker", "push", self.image_name_with_tag(conf['config'], tag='latest')])
                 assert res.returncode == 0
 
     def tag_image(self, source_image, target_image):
@@ -283,7 +286,7 @@ class SosTool:
         """
         Zjisti jake image mame ubuildene v lokalnim dockeru, vraci set imagu v image:tag formatu.
         """
-        res = self.cmd(["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"], get_stdout=True)
+        res = self.cmd(["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"], get_stdout=True, run_always=True)
         images = set()
         for l in res.stdout.decode("utf-8").split("\n"):
             stripped = l.strip()
