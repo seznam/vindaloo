@@ -18,16 +18,18 @@ YES_OPTIONS = ["y", "Y", "a", "A"]
 NONE = "base"
 DEV = "dev"
 TEST = "test"
+PRERELEASE = "prerelease"
 STAGING = "staging"
-PROD = "prod"
+STABLE = "stable"
 
-LOCAL_ENVS = [DEV, TEST, STAGING, PROD]
+LOCAL_ENVS = [DEV, TEST, PRERELEASE, STAGING, STABLE]
 
 K8S_NAMESPACES = {
     DEV: "sos-dev",
     TEST: "sos-test",
+    PRERELEASE: "sos-pre-release",
     STAGING: "sos-staging",
-    PROD: "sos-stable",
+    STABLE: "sos-stable",
 }
 
 K8S_CLUSTERS = {
@@ -35,7 +37,7 @@ K8S_CLUSTERS = {
     "ng": "kube1.ng",
 }
 
-ENVS_WITH_PROD_REGISTRY = [STAGING, PROD]
+ENVS_WITH_PROD_REGISTRY = [STAGING, STABLE]
 
 K8S_OBJECT_TYPES = [
     "podpreset", "deployment", "service", "ingres", "cronjob", "job"
