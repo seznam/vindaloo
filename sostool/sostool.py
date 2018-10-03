@@ -190,10 +190,11 @@ class SosTool:
         """Spusti build image bez cachovani"""
 
         for conf in self.config_module.DOCKER_FILES:
+            image_name = conf['config']['image_name']
+            pure_image_name = self._strip_image_name(image_name)
+
             if self.args_image:
-                image_name = conf['config']['image_name']
                 # jmeno bez hostu, napr. sos/adminserver
-                pure_image_name = self._strip_image_name(image_name)
                 if pure_image_name not in self.args_image:
                     print('preskakuju image {}'.format(pure_image_name))
                     continue
@@ -213,7 +214,7 @@ class SosTool:
             if self.args.latest:
                 command_args.extend([
                     '-t',
-                    conf['config']['image_name'] + ':latest',
+                    '{}/{}:latest'.format(self.registry, pure_image_name),
                 ])
             command_args.extend([
                 "-f",
