@@ -1,5 +1,5 @@
 
-from sostool.sostool import run
+from vindaloo.vindaloo import run
 
 if __name__ == '__main__':
     run()
