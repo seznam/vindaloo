@@ -22,6 +22,11 @@ Typycké použití
 ```
 cd projekt  (musi obsahovat adresar k8s)
 vindaloo.pex versions
+
+vindaloo.pex build sos/groupware_bridge
+vindaloo.pex push sos/groupware_bridge
+vindaloo.pex deploy dev ko
+vindaloo.pex deploy dev ng
 ```
 
 Hilfe
