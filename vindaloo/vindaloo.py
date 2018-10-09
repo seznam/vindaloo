@@ -46,7 +46,7 @@ K8S_OBJECT_TYPES = [
 SUCCESS_REPLY = ("Y", "y", "a", "A")
 
 
-class SosTool:
+class Vindaloo:
     """
     Nastroj pro usnadneni prace s dockerem a kubernetes
     """
@@ -629,5 +629,5 @@ kubectl config set-credentials "${username}-${dc}" --token="${token}"
 
 
 def run():
-    tool = SosTool()
+    tool = Vindaloo()
     tool.main()
