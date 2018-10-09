@@ -4,8 +4,8 @@ import argparse
 import json
 import os
 import shutil
-import sys
 import subprocess
+import sys
 import tempfile
 from typing import List, Set
 
@@ -13,37 +13,22 @@ import pystache
 
 from . import config
 
-YES_OPTIONS = ["y", "Y", "a", "A"]
+if sys.version_info[0] > 2:
+    import importlib
+    from importlib import import_module
+else:
+    import importlib2 as importlib
+    from importlib2 import import_module
 
 NONE = "base"
-DEV = "dev"
-TEST = "test"
-PRERELEASE = "prerelease"
-STAGING = "staging"
-STABLE = "stable"
-
-LOCAL_ENVS = [DEV, TEST, PRERELEASE, STAGING, STABLE]
-
-K8S_NAMESPACES = {
-    DEV: "sos-dev",
-    TEST: "sos-test",
-    PRERELEASE: "sos-pre-release",
-    STAGING: "sos-staging",
-    STABLE: "sos-stable",
-}
-
-K8S_CLUSTERS = {
-    "ko": "kube1.ko",
-    "ng": "kube1.ng",
-}
-
-ENVS_WITH_PROD_REGISTRY = [STAGING, STABLE]
 
 K8S_OBJECT_TYPES = [
     "podpreset", "deployment", "service", "ingres", "cronjob", "job"
 ]
 
 SUCCESS_REPLY = ("Y", "y", "a", "A")
+
+ENVS_CONFIG_NAME = 'vindaloo_conf'
 
 
 class Vindaloo:
@@ -52,7 +37,8 @@ class Vindaloo:
     """
 
     def __init__(self):
-        self.config_module = None
+        self.envs_config_module = None  # konfigurace prostredi (clustery, namespacy)
+        self.config_module = None  # konfigurace aktualne vybraneho prostredi (Dockerfily, deploymenty, porty, ...)
         self.args = None
 
     def am_i_logged_in(self):
@@ -86,14 +72,14 @@ class Vindaloo:
 
     def k8s_select_env(self):
         dep_env = self.args.environment
-        if dep_env not in LOCAL_ENVS:
+        if dep_env not in self.envs_config_module.LOCAL_ENVS:
             self.fail("Musite zadat EXISTUJICI prostredi ktere chcete nasadit. {} nezname.".format(dep_env))
         self.select_k8s_context(dep_env, self.args.cluster)
 
     def k8s_deploy(self):
         dep_env = self.args.environment
 
-        if dep_env not in LOCAL_ENVS:
+        if dep_env not in self.envs_config_module.LOCAL_ENVS:
             self.fail("Musite zadat EXISTUJICI prostredi ktere chcete nasadit. {} nezname.".format(dep_env))
 
         if not self.import_config(dep_env):
@@ -118,6 +104,27 @@ class Vindaloo:
                 res = self.cmd(["kubectl", "apply", "-f", temp_file.name])
                 assert res.returncode == 0
 
+    def import_envs_config(self):
+        """
+        Nacte hlavni konfiguraci, ktera obsahuje seznam klusteru a namespacu
+        """
+        dir = os.path.abspath(os.path.curdir)
+
+        while dir != '/':
+            module = os.path.join(dir, ENVS_CONFIG_NAME)
+            path = '{}.py'.format(module)
+
+            if os.path.isfile(path):
+                spec = importlib.util.spec_from_file_location(module, path)
+                self.envs_config_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(self.envs_config_module)
+                break
+
+            # zkusime o slozku vyse
+            dir = os.path.abspath(os.path.join(dir, '..'))
+        else:
+            self.fail("Konfiguracni soubor {}.py nenalezen nikde v ceste".format(ENVS_CONFIG_NAME))
+
     def import_config(self, env):
         # radsi checkneme ze mame soubor, abysme neimportovali nejaky jiny modul z path...
         if not os.path.isfile("k8s/{}.py".format(env)):
@@ -128,10 +135,6 @@ class Vindaloo:
         sys.path.insert(0, "k8s")
 
         try:
-            if sys.version_info[0] > 2:
-                from importlib import import_module
-            else:
-                from importlib2 import import_module
             return import_module(env)
         except ModuleNotFoundError:
             return None
@@ -177,7 +180,7 @@ class Vindaloo:
 
     @property
     def registry(self):
-        if hasattr(self.args, 'environment') and self.args.environment in ENVS_WITH_PROD_REGISTRY:
+        if hasattr(self.args, 'environment') and self.args.environment in self.envs_config_module.ENVS_WITH_PROD_REGISTRY:
             return 'doc.ker'
         return 'doc.ker.dev.dszn.cz'
 
@@ -309,7 +312,7 @@ class Vindaloo:
 
     def collect_local_versions(self, only_env=None):
         local_versions = {}
-        for env in LOCAL_ENVS:
+        for env in self.envs_config_module.LOCAL_ENVS:
             if only_env and only_env != env:
                 continue
             if self.import_config(env):
@@ -323,12 +326,12 @@ class Vindaloo:
 
     def collect_remote_versions(self, only_env=None):
         remote_versions = {}
-        for env in K8S_NAMESPACES:
+        for env in self.envs_config_module.K8S_NAMESPACES:
             if only_env and only_env != env:
                 continue
 
             if self.import_config(env):
-                for cluster in K8S_CLUSTERS:
+                for cluster in self.envs_config_module.K8S_CLUSTERS:
                     self.select_k8s_context(env, cluster)
                     for deployment in self.config_module.K8S_OBJECTS.get("deployment", []):
                         module_name = deployment['config']['ident_label']
@@ -363,7 +366,7 @@ class Vindaloo:
             for image_ in summary[env]:
                 vers = summary[env][image_]
                 warning = ""
-                for cluster in K8S_CLUSTERS:
+                for cluster in self.envs_config_module.K8S_CLUSTERS:
                     if vers["local"] != vers["remote"].get(cluster):
                         warning = " [ROZDILNE]"
                 print("Image: {} v konfigu: {}, na serveru: {} {}".format(
@@ -382,7 +385,7 @@ class Vindaloo:
             return []
 
     def select_k8s_context(self, env, cluster):
-        context = '{}-{}'.format(K8S_NAMESPACES[env], cluster)
+        context = '{}-{}'.format(self.envs_config_module.K8S_NAMESPACES[env], cluster)
 
         if not self.cmd_check(["kubectl", "config", "use-context", context]):
             if not self.confirm("Neni nastaven kuberneti context {}. Mam ho vytvorit?".format(context)):
@@ -390,8 +393,8 @@ class Vindaloo:
                 sys.exit(0)
             username = self.input_text("Zadejte domenove jmeno: ")
             assert self.cmd_check([
-                "kubectl", "config", "set-context", context, "--cluster={}".format(K8S_CLUSTERS[cluster]),
-                "--namespace={}".format(K8S_NAMESPACES[env]), "--user={}-{}".format(username, cluster)])
+                "kubectl", "config", "set-context", context, "--cluster={}".format(self.envs_config_module.K8S_CLUSTERS[cluster]),
+                "--namespace={}".format(self.envs_config_module.K8S_NAMESPACES[env]), "--user={}-{}".format(username, cluster)])
             assert self.cmd_check(["kubectl", "config", "use-context", context])
             print("Prostredi zmeneneno na {} ({})".format(env, context))
 
@@ -481,6 +484,8 @@ class Vindaloo:
 
         NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy')
 
+        self.import_envs_config()
+
         parser = argparse.ArgumentParser(description=self.__class__.__doc__)
         parser.add_argument('--debug', action='store_true')
         parser.add_argument('--noninteractive', action='store_true')
@@ -501,22 +506,22 @@ class Vindaloo:
         push_parser.add_argument('--registry', help='tagne image a pushne do jine registry')
 
         kubeenv_parser = subparsers.add_parser('kubeenv', help='switchne aktualni kubernetes context v ENV')
-        kubeenv_parser.add_argument('environment', help='prostredi, kam chceme switchnout', choices=LOCAL_ENVS)
-        kubeenv_parser.add_argument('cluster', help='nazev clusteru (ko/ng)', choices=K8S_CLUSTERS, default='ko', nargs='?')
+        kubeenv_parser.add_argument('environment', help='prostredi, kam chceme switchnout', choices=self.envs_config_module.LOCAL_ENVS)
+        kubeenv_parser.add_argument('cluster', help='nazev clusteru (ko/ng)', choices=self.envs_config_module.K8S_CLUSTERS, default='ko', nargs='?')
 
         versions_parser = subparsers.add_parser('versions', help='vypise verze vsech imagu a srovna s clusterem')
-        versions_parser.add_argument('environment', help='env pro ktery chceme verze zobrazit', choices=LOCAL_ENVS, nargs='?')
+        versions_parser.add_argument('environment', help='env pro ktery chceme verze zobrazit', choices=self.envs_config_module.LOCAL_ENVS, nargs='?')
 
         login_parser = subparsers.add_parser('kubelogin', help='prihlasi se do kubernetu')
-        login_parser.add_argument('cluster', help='nazev clusteru (ko/ng)', choices=K8S_CLUSTERS, default='ko', nargs='?')
+        login_parser.add_argument('cluster', help='nazev clusteru (ko/ng)', choices=self.envs_config_module.K8S_CLUSTERS, default='ko', nargs='?')
 
         deploy_parser = subparsers.add_parser('deploy', help='nasadi zmeny do clusteru')
-        deploy_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
-        deploy_parser.add_argument('cluster', help='nazev clusteru (ko/ng)', choices=K8S_CLUSTERS, default='ko', nargs='?')
+        deploy_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=self.envs_config_module.LOCAL_ENVS)
+        deploy_parser.add_argument('cluster', help='nazev clusteru (ko/ng)', choices=self.envs_config_module.K8S_CLUSTERS, default='ko', nargs='?')
 
         bpd_parser = subparsers.add_parser('build-push-deploy', help='udela vsechny tri kroky')
-        bpd_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=LOCAL_ENVS)
-        bpd_parser.add_argument('cluster', help='nazev clusteru (ko/ng)', choices=K8S_CLUSTERS, default='ko', nargs='?')
+        bpd_parser.add_argument('environment', help='prostredi, kam chceme nasadit', choices=self.envs_config_module.LOCAL_ENVS)
+        bpd_parser.add_argument('cluster', help='nazev clusteru (ko/ng)', choices=self.envs_config_module.K8S_CLUSTERS, default='ko', nargs='?')
         bpd_parser.add_argument('image', help='image, ktery chceme ubuildit/pushnout', nargs='?', action='append')
         bpd_parser.add_argument('--latest', help='pushnout image i jako latest', action='store_true')
         bpd_parser.add_argument('--registry', help='tagne image a pushne do jine registry')
