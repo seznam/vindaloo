@@ -2,8 +2,16 @@
 
 `Lů` je univerzální vyndavač do kubernetu, který umožňuje snadno pracovat v jednom projektu s více docker registry, docker repozitáři, kubernetes clustery a namespacy, aniž by bylo nutné duplikovat konfiguraci.
 
-Základní myšlenka je taková, že každý projekt/komponenta/služba obsahuje adresář `k8s`, který obsahuje konfiguraci pro kubernetes
-v pythoním formátu a z ní `Lů`  generuje jednotlivé deploymenty, Dockerfiles, atd.
+`Lů` používá dvě úrovně konfigurace.
+
+"Globální" konfigurace je očekávána v souboru `vindaloo_conf.py` a definuje
+seznam prostředí, jím odpovídající k8s namespacy a seznam k8s clusterů.
+`vindaloo_conf.py` je možné umístit přímo do adresáře nasazované komponenty a
+nebo do jakéhokoliv nadřazeného adresáře, např. do domovské složky, pokud
+používáme pro všechny projekty stejné k8s prostředí (namespacy a clustery).
+
+Každý projekt/komponenta/služba pak obsahuje adresář `k8s`, který obsahuje konfiguraci
+pro build a nasazení této komponenty a z ní `Lů`  generuje jednotlivé deploymenty, Dockerfiles, atd.
 a ty pak předává `kubectl`.
 
 Co to umí
@@ -74,7 +82,12 @@ k8s
     - staging.py
     - stable.py
     - versions.json
+vindaloo_conf.py
 ```
+
+`vindaloo_conf.py` obsahuje definici seznamu prostředí, jím odpovídající k8s namespacy a seznam k8s clusterů,
+do kterých budeme nasazovat.
+Soubor může být umístěn v adresáří komponenty nebo kdekoliv výše.
 
 `templates` obsahuje šablony generovaných souborů. Uvnitř mají mustache syntaxi.
 Dovoluje i jednoduché cyckly atp. Je to takový neseznamý TENG :-)
@@ -86,6 +99,40 @@ konfigurace pro všechna prostředí.
 `[dev/test/...].py` jsou konfiguráky pro jednotlivá prostředí a obsahují věci pro ně specifické (např. nodePorty).
 
 `versions.json` je konfigurák definující verze imagů, které chceme buildit/nasadit.
+
+
+Ukázkový vindaloo_conf.py
+-------------------------
+
+```
+# konstanty pro prostredi
+DEV = "dev"
+TEST = "test"
+PRERELEASE = "prerelease"
+STAGING = "staging"
+STABLE = "stable"
+
+# seznam prostredi, ktera chceme pouzivat
+LOCAL_ENVS = [DEV, TEST, PRERELEASE, STAGING, STABLE]
+
+# odpovidajici k8s namespacy
+K8S_NAMESPACES = {
+    DEV: "sos-dev",
+    TEST: "sos-test",
+    PRERELEASE: "sos-pre-release",
+    STAGING: "sos-staging",
+    STABLE: "sos-stable",
+}
+
+# seznam k8s clusteru
+K8S_CLUSTERS = {
+    "ko": "kube1.ko",
+    "ng": "kube1.ng",
+}
+
+# seznam prostredi, pro ktera chceme pouzivat produkcni docker registry
+ENVS_WITH_PROD_REGISTRY = [STAGING, STABLE]
+```
 
 
 Ukázkový base.py
