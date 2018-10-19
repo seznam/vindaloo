@@ -1,0 +1,25 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ident_label}}
+spec:
+  replicas: {{replicas}}
+  template:
+    metadata:
+      name: "{{ident_label}}"
+      labels:
+        app: "{{ident_label}}"
+      annotations:
+        {{#spec_annotations}}
+        {{key}}: "{{val}}"
+        {{/spec_annotations}}
+    spec:
+      containers:
+      - name: "{{ident_label}}"
+        image: {{image}}
+        imagePullPolicy: IfNotPresent
+        env:
+        {{#env}}
+        - name: {{key}}
+          value: {{val}}
+        {{/env}}

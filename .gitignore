@@ -1,2 +1,5 @@
 __pycache__
 vindaloo.egg-info
+htmlcov
+.coverage
+tests/Dockerfile
