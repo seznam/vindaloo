@@ -6,6 +6,8 @@ import pytest
 from utils import chdir
 from vindaloo.vindaloo import Vindaloo
 
+ALL_CMDS_STRING = 'build,pull,push,kubeenv,versions,kubelogin,deploy,build-push-deploy'
+
 
 @mock.patch('argparse._sys.exit')
 def test_help(mock_sys_exit, capsys):
@@ -19,7 +21,7 @@ def test_help(mock_sys_exit, capsys):
 
     assert mock_sys_exit.call_args[0][0] == 0
     assert 'usage' in output
-    assert 'build,pull,push,kubeenv,versions,kubelogin,deploy,build-push-deploy' in output
+    assert ALL_CMDS_STRING in output
 
 
 @mock.patch('argparse._sys.exit')
@@ -37,4 +39,4 @@ def test_help_build(mock_sys_exit, capsys):
 
     assert 'usage' in output
     assert '--latest' in output
-    assert 'build,pull,push,kubeenv,versions,kubelogin,deploy,build-push-deploy' not in output
+    assert ALL_CMDS_STRING not in output

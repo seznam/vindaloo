@@ -1,17 +1,11 @@
 import sys
-from unittest import mock
 
 from utils import chdir
-from vindaloo.vindaloo import Vindaloo
 
 
-def test_login_ko():
+def test_login_ko(loo):
     # nafakujeme parametry
     sys.argv = ['vindaloo', 'kubelogin', 'ko']
-
-    loo = Vindaloo()
-    loo.cmd = mock.Mock()
-    loo.cmd.return_value.returncode = 0
 
     with chdir('tests'):
         loo.main()
@@ -20,13 +14,9 @@ def test_login_ko():
     assert loo.cmd.call_args[0][0][2] == 'ko'
 
 
-def test_login_ng():
+def test_login_ng(loo):
     # nafakujeme parametry
     sys.argv = ['vindaloo', 'kubelogin', 'ng']
-
-    loo = Vindaloo()
-    loo.cmd = mock.Mock()
-    loo.cmd.return_value.returncode = 0
 
     with chdir('tests'):
         loo.main()

@@ -1,17 +1,11 @@
 import sys
-from unittest import mock
 
 from utils import chdir
-from vindaloo.vindaloo import Vindaloo
 
 
-def test_build_all():
+def test_build_all(loo):
     # nafakujeme parametry
     sys.argv = ['vindaloo', '--noninteractive', 'build']
-
-    loo = Vindaloo()
-    loo.cmd = mock.Mock()
-    loo.cmd.return_value.returncode = 0
 
     with chdir('tests'):
         loo.main()
@@ -38,18 +32,14 @@ def test_build_all():
 
     # zkontrolujeme vygenerovany Dockerfile
     with open('tests/Dockerfile', 'r') as fp:
-        lines = [line.strip() for line in fp]
-        assert lines[0] == 'LABEL maintainer="Test Test <test.test@firma.seznam.cz>"'
-        assert lines[1] == 'LABEL description="Bar"'
-        assert lines[2] == 'LABEL version="2.0.0"'
+        assert fp.read() == """LABEL maintainer="Test Test <test.test@firma.seznam.cz>"
+LABEL description="Bar"
+LABEL version="2.0.0"
+"""
 
 
-def test_build_one():
+def test_build_one(loo):
     sys.argv = ['vindaloo', '--noninteractive', 'build', 'test/foo']
-
-    loo = Vindaloo()
-    loo.cmd = mock.Mock()
-    loo.cmd.return_value.returncode = 0
 
     with chdir('tests'):
         loo.main()
@@ -68,19 +58,16 @@ def test_build_one():
 
     # zkontrolujeme vygenerovany Dockerfile
     with open('tests/Dockerfile', 'r') as fp:
-        lines = [line.strip() for line in fp]
-        assert lines[0] == 'FROM debian'
-        assert lines[2] == 'LABEL maintainer="Test Test <test.test@firma.seznam.cz>"'
-        assert lines[3] == 'LABEL description="Foo"'
-        assert lines[4] == 'LABEL version="1.0.0"'
+        assert fp.read() == """FROM debian
+
+LABEL maintainer="Test Test <test.test@firma.seznam.cz>"
+LABEL description="Foo"
+LABEL version="1.0.0"
+"""
 
 
-def test_build_latest():
+def test_build_latest(loo):
     sys.argv = ['vindaloo', '--noninteractive', 'build', '--latest', 'test/foo']
-
-    loo = Vindaloo()
-    loo.cmd = mock.Mock()
-    loo.cmd.return_value.returncode = 0
 
     with chdir('tests'):
         loo.main()
@@ -100,8 +87,9 @@ def test_build_latest():
 
     # zkontrolujeme vygenerovany Dockerfile
     with open('tests/Dockerfile', 'r') as fp:
-        lines = [line.strip() for line in fp]
-        assert lines[0] == 'FROM debian'
-        assert lines[2] == 'LABEL maintainer="Test Test <test.test@firma.seznam.cz>"'
-        assert lines[3] == 'LABEL description="Foo"'
-        assert lines[4] == 'LABEL version="1.0.0"'
+        assert fp.read() == """FROM debian
+
+LABEL maintainer="Test Test <test.test@firma.seznam.cz>"
+LABEL description="Foo"
+LABEL version="1.0.0"
+"""
