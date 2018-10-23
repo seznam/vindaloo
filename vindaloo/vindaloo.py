@@ -1,24 +1,17 @@
 #!/usr/bin/python3
 
 import argparse
+import imp
+from importlib import import_module
 import json
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
-from typing import List, Set
+from typing import Set
 
 import pystache
 
-from . import config
-
-if sys.version_info[0] > 2:
-    import importlib
-    from importlib import import_module
-else:
-    import importlib2 as importlib
-    from importlib2 import import_module
 
 NONE = "base"
 
@@ -42,21 +35,19 @@ class Vindaloo:
         self.args = None
 
     def am_i_logged_in(self):
-        spc = subprocess.call(
+        spc = self.cmd(
             ["kubectl", "auth", "can-i", "get", "deployment"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=False
+            get_stdout=True,
         )
-        return spc == 0
+        return spc.returncode == 0
 
     def k8s_login(self):
         locality = self.args.cluster
         temp_file = tempfile.NamedTemporaryFile()
         temp_file.write(bytes(KUBE_LOGIN_SCRIPT, 'utf-8'))
         temp_file.flush()
-        spc = subprocess.call(['bash', temp_file.name, locality])
-        assert spc == 0
+        spc = self.cmd(['bash', temp_file.name, locality])
+        assert spc.returncode == 0
 
     def confirm(self, message, default="y"):
         res = input("{}{}: ".format(message, " [{}]".format(default)) if default else "")
@@ -115,9 +106,7 @@ class Vindaloo:
             path = '{}.py'.format(module)
 
             if os.path.isfile(path):
-                spec = importlib.util.spec_from_file_location(module, path)
-                self.envs_config_module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(self.envs_config_module)
+                self.envs_config_module = imp.load_source(module, path)
                 break
 
             # zkusime o slozku vyse
@@ -533,7 +522,7 @@ class Vindaloo:
         if not self.check_current_dir():
             self.fail("Adresar neobsahuje slozku k8s nebo Dockerfile. Jsme uvnitr modulu?")
 
-        if not self.am_i_logged_in() and self.args.command in NEEDS_K8S_LOGIN:
+        if self.args.command in NEEDS_K8S_LOGIN and not self.am_i_logged_in():
             self.fail("Nejste prihlaseni, zkuste 'sostool kubelogin'")
 
         self.do_command()

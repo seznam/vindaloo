@@ -14,6 +14,12 @@ Každý projekt/komponenta/služba pak obsahuje adresář `k8s`, který obsahuje
 pro build a nasazení této komponenty a z ní `Lů`  generuje jednotlivé deploymenty, Dockerfiles, atd.
 a ty pak předává `kubectl`.
 
+Instalace
+---------
+
+Vyžadován je Python 3.5 a vyšší.
+
+
 Co to umí
 ---------
 

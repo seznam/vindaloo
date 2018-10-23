@@ -1,0 +1,15 @@
+test-3.5:
+  image: python:3.5-alpine
+  script:
+    - pip install pytest pystache typing
+    - pytest tests
+test-3.6:
+  image: python:3.6-alpine
+  script:
+    - pip install pytest pystache
+    - pytest tests
+test-3.7:
+  image: python:3.7-alpine
+  script:
+    - pip install pytest pystache
+    - pytest tests
