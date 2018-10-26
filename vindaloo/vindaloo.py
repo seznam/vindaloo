@@ -67,7 +67,7 @@ class Vindaloo:
             text = input(message)
         return text
 
-    def _output_text(self, *args) -> None:
+    def _out(self, *args) -> None:
         if not self.args or not self.args.quiet:
             print(*args)
 
@@ -161,9 +161,9 @@ class Vindaloo:
         Provede zadany prikaz jako podproces
         """
         if self.args.debug:
-            self._output_text("CALL: ", ' '.join(command))
+            self._out("CALL: ", ' '.join(command))
         if self.args.dryrun:
-            self._output_text("CALL: ", ' '.join(command))
+            self._out("CALL: ", ' '.join(command))
             if not run_always:
                 return subprocess.run('true')  # zavolam 'true' abych mohl vratit vysledek
 
@@ -174,17 +174,17 @@ class Vindaloo:
 
         return subprocess.run(command, **kwargs)
 
-    def _cmd_check(self, command: List[str], get_stdout: bool = False):
+    def _cmd_check(self, command: List[str], get_stdout: bool = False) -> subprocess.CompletedProcess:
         """
         Provede prikaz a vrati zda skoncil bez chyby
         """
         return self.cmd(command, get_stdout).returncode == 0
 
-    def fail(self, msg: str):
+    def fail(self, msg: str) -> None:
         """
         Ukonci beh se zadanou zpravou a chybovym stavem (-1)
         """
-        self._output_text(msg)
+        self._out(msg)
         sys.exit(-1)
 
     def _image_name_with_tag(self, conf: Dict, tag: str = None, registry: str = None) -> str:
@@ -234,7 +234,7 @@ class Vindaloo:
             if self.args_image:
                 # jmeno bez hostu, napr. sos/adminserver
                 if pure_image_name not in self.args_image:
-                    self._output_text('preskakuju image {}'.format(pure_image_name))
+                    self._out('preskakuju image {}'.format(pure_image_name))
                     continue
 
             self._create_dockerfile(conf)
@@ -277,11 +277,11 @@ class Vindaloo:
 
             if self.args_image:
                 if pure_image_name not in self.args_image:
-                    self._output_text('preskakuju image {}'.format(pure_image_name))
+                    self._out('preskakuju image {}'.format(pure_image_name))
                     continue
 
             if image_name_with_tag in known_images:
-                self._output_text("preskakuji image {}, je uz pullnuty...".format(image_name_with_tag))
+                self._out("preskakuji image {}, je uz pullnuty...".format(image_name_with_tag))
                 continue
 
             res = self.cmd(["docker", "pull", image_name_with_tag])
@@ -303,11 +303,11 @@ class Vindaloo:
 
             if self.args_image:
                 if pure_image_name not in self.args_image:
-                    self._output_text('preskakuju image {}'.format(pure_image_name))
+                    self._out('preskakuju image {}'.format(pure_image_name))
                     continue
 
             if image_name_with_tag not in known_images:
-                self._output_text("preskakuji image {} neni ubuildeny...".format(image_name_with_tag))
+                self._out("preskakuji image {} neni ubuildeny...".format(image_name_with_tag))
                 continue
 
             if self.args.registry:
@@ -414,16 +414,16 @@ class Vindaloo:
                         image, {'local': None, 'remote': {}}
                     )["remote"][cluster] = remote_[env][cluster][image]
 
-        self._output_text("\nPro definovana prostredi vzdy obraz a verze")
+        self._out("\nPro definovana prostredi vzdy obraz a verze")
         for env in summary:
-            self._output_text("\n{}:".format(env))
+            self._out("\n{}:".format(env))
             for image_ in summary[env]:
                 vers = summary[env][image_]
                 warning = ""
                 for cluster in self.envs_config_module.K8S_CLUSTERS:
                     if vers["local"] != vers["remote"].get(cluster):
                         warning = " [ROZDILNE]"
-                self._output_text("Image: {} v konfigu: {}, na serveru: {} {}".format(
+                self._out("Image: {} v konfigu: {}, na serveru: {} {}".format(
                     image_, vers["local"], vers["remote"], warning
                 ))
 
@@ -449,7 +449,7 @@ class Vindaloo:
 
         if not self._cmd_check(["kubectl", "config", "use-context", context]):
             if not self._confirm("Neni nastaven kuberneti context {}. Mam ho vytvorit?".format(context)):
-                self._output_text('Deploy byl ukoncen')
+                self._out('Deploy byl ukoncen')
                 sys.exit(0)
             username = self._input_text("Zadejte domenove jmeno: ")
             assert self._cmd_check([
@@ -460,7 +460,7 @@ class Vindaloo:
                     self.envs_config_module.K8S_NAMESPACES[env]
                 ), "--user={}-{}".format(username, cluster)])
             assert self._cmd_check(["kubectl", "config", "use-context", context])
-            self._output_text("Prostredi zmeneneno na {} ({})".format(env, context))
+            self._out("Prostredi zmeneneno na {} ({})".format(env, context))
 
     def _create_file(self, template_file_name: str, conf: Dict, force_dest_file: str = None) -> BinaryIO:
         """
