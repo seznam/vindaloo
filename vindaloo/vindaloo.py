@@ -127,8 +127,6 @@ class Vindaloo:
 
             # zkusime o slozku vyse
             dir = os.path.abspath(os.path.join(dir, '..'))
-        else:
-            self.fail("Konfiguracni soubor {}.py nenalezen nikde v ceste".format(ENVS_CONFIG_NAME))
 
     def _import_config(self, env: str) -> Any:
         """
@@ -575,10 +573,12 @@ class Vindaloo:
 
         kubeenv_parser = subparsers.add_parser('kubeenv', help='switchne aktualni kubernetes context v ENV')
         kubeenv_parser.add_argument(
-            'environment', help='prostredi, kam chceme switchnout', choices=self.envs_config_module.LOCAL_ENVS
+            'environment', help='prostredi, kam chceme switchnout',
+            choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple(),
         )
         kubeenv_parser.add_argument(
-            'cluster', help='nazev clusteru (ko/ng)', choices=self.envs_config_module.K8S_CLUSTERS,
+            'cluster', help='nazev clusteru (ko/ng)',
+            choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
             default='ko', nargs='?'
         )
 
@@ -586,32 +586,38 @@ class Vindaloo:
         versions_parser.add_argument(
             'environment',
             help='env pro ktery chceme verze zobrazit',
-            choices=self.envs_config_module.LOCAL_ENVS, nargs='?'
+            choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple(),
+            nargs='?'
         )
 
         login_parser = subparsers.add_parser('kubelogin', help='prihlasi se do kubernetu')
         login_parser.add_argument(
             'cluster',
             help='nazev clusteru (ko/ng)',
-            choices=self.envs_config_module.K8S_CLUSTERS, default='ko', nargs='?'
+            choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
+            default='ko', nargs='?'
         )
 
         deploy_parser = subparsers.add_parser('deploy', help='nasadi zmeny do clusteru')
         deploy_parser.add_argument(
-            'environment', help='prostredi, kam chceme nasadit', choices=self.envs_config_module.LOCAL_ENVS
+            'environment', help='prostredi, kam chceme nasadit',
+            choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple()
         )
         deploy_parser.add_argument(
             'cluster', help='nazev clusteru (ko/ng)',
-            choices=self.envs_config_module.K8S_CLUSTERS, default='ko', nargs='?'
+            choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
+            default='ko', nargs='?'
         )
 
         bpd_parser = subparsers.add_parser('build-push-deploy', help='udela vsechny tri kroky')
         bpd_parser.add_argument(
-            'environment', help='prostredi, kam chceme nasadit', choices=self.envs_config_module.LOCAL_ENVS
+            'environment', help='prostredi, kam chceme nasadit',
+            choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple()
         )
         bpd_parser.add_argument(
             'cluster', help='nazev clusteru (ko/ng)',
-            choices=self.envs_config_module.K8S_CLUSTERS, default='ko', nargs='?'
+            choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
+            default='ko', nargs='?'
         )
         bpd_parser.add_argument('image', help='image, ktery chceme ubuildit/pushnout', nargs='?', action='append')
         bpd_parser.add_argument('--latest', help='pushnout image i jako latest', action='store_true')
@@ -621,11 +627,14 @@ class Vindaloo:
 
         self.config_module = self._import_config(NONE)
 
+        if self.args.command != 'init' and not self.envs_config_module:
+            self.fail("Konfiguracni soubor {}.py nenalezen nikde v ceste".format(ENVS_CONFIG_NAME))
+
         if not self._check_current_dir():
             self.fail("Adresar neobsahuje slozku k8s nebo Dockerfile. Jsme uvnitr modulu?")
 
         if self.args.command in NEEDS_K8S_LOGIN and not self._am_i_logged_in():
-            self.fail("Nejste prihlaseni, zkuste 'sostool kubelogin'")
+            self.fail("Nejste prihlaseni, zkuste 'vindaloo kubelogin'")
 
         self.do_command()
 
