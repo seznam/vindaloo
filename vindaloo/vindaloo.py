@@ -12,6 +12,14 @@ from typing import Any, Dict, List, Set, BinaryIO
 
 import pystache
 
+from .examples import (
+    EXAMPLE_VINDALOO_CONF,
+    EXAMPLE_BASE,
+    EXAMPLE_DEV,
+    EXAMPLE_DOCKERFILE,
+    EXAMPLE_DEPLOYMENT,
+    EXAMPLE_SERVICE,
+)
 from .login import KUBE_LOGIN_SCRIPT
 
 
@@ -22,6 +30,7 @@ K8S_OBJECT_TYPES = [
 SUCCESS_REPLY = ("Y", "y", "a", "A")
 ENVS_CONFIG_NAME = 'vindaloo_conf'
 NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy')
+CONFIG_DIR = 'k8s'
 
 
 class Vindaloo:
@@ -70,6 +79,53 @@ class Vindaloo:
     def _out(self, *args) -> None:
         if not self.args or not self.args.quiet:
             print(*args)
+
+    def init_env(self) -> None:
+        """
+        Pripravy projekt pro praci s vindaloo
+        """
+        os.chdir(self.args.dir)
+        if self._check_current_dir():
+            self.fail("Projekt jiz obsahuje adrear `k8s`.")
+
+        maintainer_name = self._input_text("Vase jmeno: ")
+        maintainer_email = self._input_text("Vas email: ")
+        k8s_prefix = self._input_text("Prefix nazvu K8S namespacu (vetsinou nazev tymu, napr. [sos]-stable): ")
+        k8s_prefix = k8s_prefix.rstrip('-')
+        image_name = self._input_text("Nazev docker repository (napr. sos/adminweb): ")
+        image_name = self._strip_image_name(image_name)
+        ident_label = image_name.split('/')[1]
+
+        os.mkdir(CONFIG_DIR)
+
+        # vytvorime globalni konfigurak
+        with open('{}.py'.format(ENVS_CONFIG_NAME), 'w') as fp:
+            fp.write(EXAMPLE_VINDALOO_CONF.format(k8s_prefix=k8s_prefix))
+
+        # vytvorime base.py, dev.py a versions.json
+        with open('{}/base.py'.format(CONFIG_DIR), 'w') as fp:
+            fp.write(EXAMPLE_BASE.format(
+                maintainer_name=maintainer_name,
+                maintainer_email=maintainer_email,
+                image_name=image_name,
+                ident_label=ident_label,
+            ))
+        with open('{}/dev.py'.format(CONFIG_DIR), 'w') as fp:
+            fp.write(EXAMPLE_DEV)
+        with open('{}/versions.json'.format(CONFIG_DIR), 'w') as fp:
+            fp.write(json.dumps({image_name: "1.0.0"}, indent=2))
+
+        # vytvorime adresar templates
+        templates_dir = os.path.join(CONFIG_DIR, 'templates')
+        os.mkdir(templates_dir)
+
+        # vytvorime zakladni sablony (Dockerfile, deployment, service)
+        with open('{}/Dockerfile'.format(templates_dir), 'w') as fp:
+            fp.write(EXAMPLE_DOCKERFILE)
+        with open('{}/deployment.yaml'.format(templates_dir), 'w') as fp:
+            fp.write(EXAMPLE_DEPLOYMENT)
+        with open('{}/service.yaml'.format(templates_dir), 'w') as fp:
+            fp.write(EXAMPLE_SERVICE)
 
     def k8s_select_env(self) -> None:
         """
@@ -133,12 +189,12 @@ class Vindaloo:
         Nacte konfiguraci pro zadane prostredi
         """
         # radsi checkneme ze mame soubor, abysme neimportovali nejaky jiny modul z path...
-        if not os.path.isfile("k8s/{}.py".format(env)):
+        if not os.path.isfile("{}/{}.py".format(CONFIG_DIR, env)):
             return None
 
-        versions = json.load(open('k8s/versions.json'))
+        versions = json.load(open('{}/versions.json'.format(CONFIG_DIR)))
         sys.modules['versions'] = versions
-        sys.path.insert(0, "k8s")
+        sys.path.insert(0, CONFIG_DIR)
 
         try:
             return import_module(env)
@@ -151,7 +207,7 @@ class Vindaloo:
         """
         Zkontroluje jestli aktualni adresar obsahuje slozku `k8s`
         """
-        return os.path.isdir("k8s")
+        return os.path.isdir(CONFIG_DIR)
 
     def cmd(self, command: List[str],
             get_stdout: bool = False, run_always: bool = False) -> subprocess.CompletedProcess:
@@ -465,7 +521,7 @@ class Vindaloo:
         Vytvori Dockerfile/yaml soubor ze zadane sablony a slovniku konfigurace
         """
         data = ""
-        with open("k8s/templates/{}".format(template_file_name), "r") as template_file:
+        with open("{}/templates/{}".format(CONFIG_DIR, template_file_name), "r") as template_file:
             renderer = pystache.Renderer()
             # Naparsujeme sablonu
             template = pystache.parse(template_file.read())
@@ -529,6 +585,8 @@ class Vindaloo:
     def do_command(self, command: str = None) -> None:
         command = command or self.args.command
 
+        if command == "init":
+            self.init_env()
         if command == "build":
             self.build_images()
         elif command == "pull":
@@ -558,6 +616,9 @@ class Vindaloo:
         parser.add_argument('--dryrun', action='store_true', help='Jen predstira, nedela zadne nevratne zmeny')
 
         subparsers = parser.add_subparsers(title='commands', dest='command')
+
+        build_parser = subparsers.add_parser('init', help='pripravi projekt pro praci s Vindaloo')
+        build_parser.add_argument('dir', help='slozka projektu')
 
         build_parser = subparsers.add_parser('build', help='ubali Docker image (vsechny)')
         build_parser.add_argument('image', help='image, ktery chceme ubildit', nargs='?', action='append')
@@ -627,11 +688,11 @@ class Vindaloo:
 
         self.config_module = self._import_config(NONE)
 
-        if self.args.command != 'init' and not self.envs_config_module:
-            self.fail("Konfiguracni soubor {}.py nenalezen nikde v ceste".format(ENVS_CONFIG_NAME))
-
-        if not self._check_current_dir():
-            self.fail("Adresar neobsahuje slozku k8s nebo Dockerfile. Jsme uvnitr modulu?")
+        if self.args.command != 'init':
+            if not self.envs_config_module:
+                self.fail("Konfiguracni soubor {}.py nenalezen nikde v ceste".format(ENVS_CONFIG_NAME))
+            if not self._check_current_dir():
+                self.fail("Adresar neobsahuje slozku k8s nebo Dockerfile. Jsme uvnitr modulu?")
 
         if self.args.command in NEEDS_K8S_LOGIN and not self._am_i_logged_in():
             self.fail("Nejste prihlaseni, zkuste 'vindaloo kubelogin'")
