@@ -1,0 +1,11 @@
+apiVersion: settings.k8s.io/v1alpha1
+kind: PodPreset
+metadata:
+  name: cluster-name
+spec:
+  selector:
+    matchLabels:
+      app: sos-robot
+  env:
+    - name: KUBERNETES_CLUSTER
+      value: "ko"

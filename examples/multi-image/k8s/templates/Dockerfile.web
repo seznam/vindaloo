@@ -1,0 +1,53 @@
+{{#includes}}{{&base_image}}{{/includes}}
+LABEL maintainer="{{{maintainer}}}"
+LABEL description="SOS adminweb"
+
+EXPOSE 8000
+ENV prometheus_multiproc_dir=/www/sos/adminweb/log/prometheus
+
+RUN apt-get install -y \
+        szn-python-frpcstorage \
+        szn-python-libeaas \
+        python-teng>=2.3.5 \
+        uwsgi \
+        uwsgi-core \
+        uwsgi-plugin-python \
+        szn-python2.7-chartdirector>=5.0.0 \
+        python-pycurl
+
+COPY adminweb/Pipfile adminweb/Pipfile.lock /www/sos/adminweb/
+RUN cd /www/sos/adminweb && https_proxy={{https_proxy}} pipenv install --system --deploy
+
+RUN groupadd -r --gid=1000 sos-adminweb && \
+    useradd -r --uid=1000 -b /home/sos-adminweb -d /home/sos-adminweb -m -s /bin/bash -g sos-adminweb sos-adminweb
+
+COPY adminweb/bin/* /www/sos/adminweb/bin/
+COPY adminweb/locale /www/sos/adminweb/locale/
+COPY adminweb/src /www/sos/adminweb/www
+COPY adminweb/conf/uwsgi-docker.ini  /www/sos/adminweb/conf/uwsgi.ini
+COPY adminweb/conf/uwsgi-docker.ini  /www/sos/adminweb/debconf/uwsgi.ini
+COPY adminweb/debian/szn-sos-adminweb.init     /www/sos/adminweb/debconf/
+COPY adminweb/templ /www/sos/adminweb/templ
+
+COPY locale/cs.dict /www/sos/adminweb/templ/adminweb-teng.dict
+COPY libs/calllog.py /www/sos/adminweb/www/lib/calllog.py
+COPY libs/mailer.py /www/sos/adminweb/www/lib/mailer.py
+COPY libs/sos.py /www/sos/adminweb/www/lib/sos.py
+COPY libs/dates.py /www/sos/adminweb/www/lib/dates.py
+COPY libs/util.py /www/sos/adminweb/www/lib/util.py
+COPY libs/colorize.py /www/sos/adminweb/www/lib/colorize.py
+COPY libs/xmltestrunner.py /www/sos/adminweb/www/lib/xmltestrunner.py
+COPY libs/textFormatter.py /www/sos/adminweb/www/lib/textFormatter.py
+COPY libs/validate.py /www/sos/adminweb/www/lib/validate.py
+
+COPY entity/sosentity /usr/lib/python2.7/dist-packages/sosentity
+
+COPY libs/util.py /usr/lib/python2.7/dist-packages/sosentity/lib/util.py
+COPY libs/validate.py /usr/lib/python2.7/dist-packages/sosentity/lib/validate.py
+
+RUN mkdir -p /www/sos/adminweb/log/prometheus
+RUN chown -R sos-adminweb:sos-adminweb /www/sos/adminweb
+ENV USER="sos-adminweb"
+
+ENTRYPOINT ["uwsgi", "/www/sos/adminweb/conf/uwsgi.ini"]
+LABEL version="{{version}}"

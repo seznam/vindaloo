@@ -1,0 +1,23 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ident_label}}
+spec:
+  replicas: {{replicas}}
+  template:
+    metadata:
+      name: {{ident_label}}
+      labels:
+        app: {{ident_label}}
+    spec:
+      containers:
+      - name: sos-adminweb-outage
+        image: {{registry}}/{{image}}
+        ports:
+        - containerPort: {{port}}
+        livenessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          httpGet:
+            path: /
+            port: {{port}}
