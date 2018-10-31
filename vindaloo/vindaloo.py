@@ -80,6 +80,11 @@ class Vindaloo:
         if not self.args or not self.args.quiet:
             print(*args)
 
+    def _create_conf_file(self, outfile: str, template: str, data: Dict[str, str] = None) -> None:
+        with open(outfile, 'w') as fp:
+            content = template.format(**data) if data else template
+            fp.write(content)
+
     def init_env(self) -> None:
         """
         Pripravy projekt pro praci s vindaloo
@@ -99,33 +104,50 @@ class Vindaloo:
         os.mkdir(CONFIG_DIR)
 
         # vytvorime globalni konfigurak
-        with open('{}.py'.format(ENVS_CONFIG_NAME), 'w') as fp:
-            fp.write(EXAMPLE_VINDALOO_CONF.format(k8s_prefix=k8s_prefix))
+        self._create_conf_file(
+            '{}.py'.format(ENVS_CONFIG_NAME),
+            EXAMPLE_VINDALOO_CONF,
+            dict(k8s_prefix=k8s_prefix)
+        )
 
         # vytvorime base.py, dev.py a versions.json
-        with open('{}/base.py'.format(CONFIG_DIR), 'w') as fp:
-            fp.write(EXAMPLE_BASE.format(
+        self._create_conf_file(
+            '{}/base.py'.format(CONFIG_DIR),
+            EXAMPLE_BASE,
+            dict(
                 maintainer_name=maintainer_name,
                 maintainer_email=maintainer_email,
                 image_name=image_name,
                 ident_label=ident_label,
-            ))
-        with open('{}/dev.py'.format(CONFIG_DIR), 'w') as fp:
-            fp.write(EXAMPLE_DEV)
-        with open('{}/versions.json'.format(CONFIG_DIR), 'w') as fp:
-            fp.write(json.dumps({image_name: "1.0.0"}, indent=2))
+            )
+        )
+        self._create_conf_file(
+            '{}/dev.py'.format(CONFIG_DIR),
+            EXAMPLE_DEV,
+        )
+
+        self._create_conf_file(
+            '{}/versions.json'.format(CONFIG_DIR),
+            json.dumps({image_name: "1.0.0"}, indent=2),
+        )
 
         # vytvorime adresar templates
         templates_dir = os.path.join(CONFIG_DIR, 'templates')
         os.mkdir(templates_dir)
 
         # vytvorime zakladni sablony (Dockerfile, deployment, service)
-        with open('{}/Dockerfile'.format(templates_dir), 'w') as fp:
-            fp.write(EXAMPLE_DOCKERFILE)
-        with open('{}/deployment.yaml'.format(templates_dir), 'w') as fp:
-            fp.write(EXAMPLE_DEPLOYMENT)
-        with open('{}/service.yaml'.format(templates_dir), 'w') as fp:
-            fp.write(EXAMPLE_SERVICE)
+        self._create_conf_file(
+            '{}/Dockerfile'.format(templates_dir),
+            EXAMPLE_DOCKERFILE
+        )
+        self._create_conf_file(
+            '{}/deployment.yaml'.format(templates_dir),
+            EXAMPLE_DEPLOYMENT
+        )
+        self._create_conf_file(
+            '{}/service.yaml'.format(templates_dir),
+            EXAMPLE_SERVICE
+        )
 
     def k8s_select_env(self) -> None:
         """
@@ -228,7 +250,7 @@ class Vindaloo:
 
         return subprocess.run(command, **kwargs)
 
-    def _cmd_check(self, command: List[str], get_stdout: bool = False) -> subprocess.CompletedProcess:
+    def _cmd_check(self, command: List[str], get_stdout: bool = False) -> bool:
         """
         Provede prikaz a vrati zda skoncil bez chyby
         """
