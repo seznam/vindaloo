@@ -12,6 +12,14 @@ from typing import Any, Dict, List, Set, BinaryIO
 
 import pystache
 
+from .examples import (
+    EXAMPLE_VINDALOO_CONF,
+    EXAMPLE_BASE,
+    EXAMPLE_DEV,
+    EXAMPLE_DOCKERFILE,
+    EXAMPLE_DEPLOYMENT,
+    EXAMPLE_SERVICE,
+)
 from .login import KUBE_LOGIN_SCRIPT
 
 
@@ -22,6 +30,7 @@ K8S_OBJECT_TYPES = [
 SUCCESS_REPLY = ("Y", "y", "a", "A")
 ENVS_CONFIG_NAME = 'vindaloo_conf'
 NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy')
+CONFIG_DIR = 'k8s'
 
 
 class Vindaloo:
@@ -70,6 +79,75 @@ class Vindaloo:
     def _out(self, *args) -> None:
         if not self.args or not self.args.quiet:
             print(*args)
+
+    def _create_conf_file(self, outfile: str, template: str, data: Dict[str, str] = None) -> None:
+        with open(outfile, 'w') as fp:
+            content = template.format(**data) if data else template
+            fp.write(content)
+
+    def init_env(self) -> None:
+        """
+        Pripravy projekt pro praci s vindaloo
+        """
+        os.chdir(self.args.dir)
+        if self._check_current_dir():
+            self.fail("Projekt jiz obsahuje adrear `k8s`.")
+
+        maintainer_name = self._input_text("Vase jmeno: ")
+        maintainer_email = self._input_text("Vas email: ")
+        k8s_prefix = self._input_text("Prefix nazvu K8S namespacu (vetsinou nazev tymu, napr. [sos]-stable): ")
+        k8s_prefix = k8s_prefix.rstrip('-')
+        image_name = self._input_text("Nazev docker repository (napr. sos/adminweb): ")
+        image_name = self._strip_image_name(image_name)
+        ident_label = image_name.split('/')[1]
+
+        os.mkdir(CONFIG_DIR)
+
+        # vytvorime globalni konfigurak
+        self._create_conf_file(
+            '{}.py'.format(ENVS_CONFIG_NAME),
+            EXAMPLE_VINDALOO_CONF,
+            dict(k8s_prefix=k8s_prefix)
+        )
+
+        # vytvorime base.py, dev.py a versions.json
+        self._create_conf_file(
+            '{}/base.py'.format(CONFIG_DIR),
+            EXAMPLE_BASE,
+            dict(
+                maintainer_name=maintainer_name,
+                maintainer_email=maintainer_email,
+                image_name=image_name,
+                ident_label=ident_label,
+            )
+        )
+        self._create_conf_file(
+            '{}/dev.py'.format(CONFIG_DIR),
+            EXAMPLE_DEV,
+        )
+
+        self._create_conf_file(
+            '{}/versions.json'.format(CONFIG_DIR),
+            json.dumps({image_name: "1.0.0"}, indent=2),
+        )
+
+        # vytvorime adresar templates
+        templates_dir = os.path.join(CONFIG_DIR, 'templates')
+        os.mkdir(templates_dir)
+
+        # vytvorime zakladni sablony (Dockerfile, deployment, service)
+        self._create_conf_file(
+            '{}/Dockerfile'.format(templates_dir),
+            EXAMPLE_DOCKERFILE
+        )
+        self._create_conf_file(
+            '{}/deployment.yaml'.format(templates_dir),
+            EXAMPLE_DEPLOYMENT
+        )
+        self._create_conf_file(
+            '{}/service.yaml'.format(templates_dir),
+            EXAMPLE_SERVICE
+        )
 
     def k8s_select_env(self) -> None:
         """
@@ -127,20 +205,18 @@ class Vindaloo:
 
             # zkusime o slozku vyse
             dir = os.path.abspath(os.path.join(dir, '..'))
-        else:
-            self.fail("Konfiguracni soubor {}.py nenalezen nikde v ceste".format(ENVS_CONFIG_NAME))
 
     def _import_config(self, env: str) -> Any:
         """
         Nacte konfiguraci pro zadane prostredi
         """
         # radsi checkneme ze mame soubor, abysme neimportovali nejaky jiny modul z path...
-        if not os.path.isfile("k8s/{}.py".format(env)):
+        if not os.path.isfile("{}/{}.py".format(CONFIG_DIR, env)):
             return None
 
-        versions = json.load(open('k8s/versions.json'))
+        versions = json.load(open('{}/versions.json'.format(CONFIG_DIR)))
         sys.modules['versions'] = versions
-        sys.path.insert(0, "k8s")
+        sys.path.insert(0, CONFIG_DIR)
 
         try:
             return import_module(env)
@@ -153,7 +229,7 @@ class Vindaloo:
         """
         Zkontroluje jestli aktualni adresar obsahuje slozku `k8s`
         """
-        return os.path.isdir("k8s")
+        return os.path.isdir(CONFIG_DIR)
 
     def cmd(self, command: List[str],
             get_stdout: bool = False, run_always: bool = False) -> subprocess.CompletedProcess:
@@ -174,7 +250,7 @@ class Vindaloo:
 
         return subprocess.run(command, **kwargs)
 
-    def _cmd_check(self, command: List[str], get_stdout: bool = False) -> subprocess.CompletedProcess:
+    def _cmd_check(self, command: List[str], get_stdout: bool = False) -> bool:
         """
         Provede prikaz a vrati zda skoncil bez chyby
         """
@@ -467,7 +543,7 @@ class Vindaloo:
         Vytvori Dockerfile/yaml soubor ze zadane sablony a slovniku konfigurace
         """
         data = ""
-        with open("k8s/templates/{}".format(template_file_name), "r") as template_file:
+        with open("{}/templates/{}".format(CONFIG_DIR, template_file_name), "r") as template_file:
             renderer = pystache.Renderer()
             # Naparsujeme sablonu
             template = pystache.parse(template_file.read())
@@ -531,6 +607,8 @@ class Vindaloo:
     def do_command(self, command: str = None) -> None:
         command = command or self.args.command
 
+        if command == "init":
+            self.init_env()
         if command == "build":
             self.build_images()
         elif command == "pull":
@@ -561,6 +639,9 @@ class Vindaloo:
 
         subparsers = parser.add_subparsers(title='commands', dest='command')
 
+        build_parser = subparsers.add_parser('init', help='pripravi projekt pro praci s Vindaloo')
+        build_parser.add_argument('dir', help='slozka projektu')
+
         build_parser = subparsers.add_parser('build', help='ubali Docker image (vsechny)')
         build_parser.add_argument('image', help='image, ktery chceme ubildit', nargs='?', action='append')
         build_parser.add_argument('--latest', help='tagnout image i jako latest', action='store_true')
@@ -575,10 +656,12 @@ class Vindaloo:
 
         kubeenv_parser = subparsers.add_parser('kubeenv', help='switchne aktualni kubernetes context v ENV')
         kubeenv_parser.add_argument(
-            'environment', help='prostredi, kam chceme switchnout', choices=self.envs_config_module.LOCAL_ENVS
+            'environment', help='prostredi, kam chceme switchnout',
+            choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple(),
         )
         kubeenv_parser.add_argument(
-            'cluster', help='nazev clusteru (ko/ng)', choices=self.envs_config_module.K8S_CLUSTERS,
+            'cluster', help='nazev clusteru (ko/ng)',
+            choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
             default='ko', nargs='?'
         )
 
@@ -586,32 +669,38 @@ class Vindaloo:
         versions_parser.add_argument(
             'environment',
             help='env pro ktery chceme verze zobrazit',
-            choices=self.envs_config_module.LOCAL_ENVS, nargs='?'
+            choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple(),
+            nargs='?'
         )
 
         login_parser = subparsers.add_parser('kubelogin', help='prihlasi se do kubernetu')
         login_parser.add_argument(
             'cluster',
             help='nazev clusteru (ko/ng)',
-            choices=self.envs_config_module.K8S_CLUSTERS, default='ko', nargs='?'
+            choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
+            default='ko', nargs='?'
         )
 
         deploy_parser = subparsers.add_parser('deploy', help='nasadi zmeny do clusteru')
         deploy_parser.add_argument(
-            'environment', help='prostredi, kam chceme nasadit', choices=self.envs_config_module.LOCAL_ENVS
+            'environment', help='prostredi, kam chceme nasadit',
+            choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple()
         )
         deploy_parser.add_argument(
             'cluster', help='nazev clusteru (ko/ng)',
-            choices=self.envs_config_module.K8S_CLUSTERS, default='ko', nargs='?'
+            choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
+            default='ko', nargs='?'
         )
 
         bpd_parser = subparsers.add_parser('build-push-deploy', help='udela vsechny tri kroky')
         bpd_parser.add_argument(
-            'environment', help='prostredi, kam chceme nasadit', choices=self.envs_config_module.LOCAL_ENVS
+            'environment', help='prostredi, kam chceme nasadit',
+            choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple()
         )
         bpd_parser.add_argument(
             'cluster', help='nazev clusteru (ko/ng)',
-            choices=self.envs_config_module.K8S_CLUSTERS, default='ko', nargs='?'
+            choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
+            default='ko', nargs='?'
         )
         bpd_parser.add_argument('image', help='image, ktery chceme ubuildit/pushnout', nargs='?', action='append')
         bpd_parser.add_argument('--latest', help='pushnout image i jako latest', action='store_true')
@@ -621,11 +710,14 @@ class Vindaloo:
 
         self.config_module = self._import_config(NONE)
 
-        if not self._check_current_dir():
-            self.fail("Adresar neobsahuje slozku k8s nebo Dockerfile. Jsme uvnitr modulu?")
+        if self.args.command != 'init':
+            if not self.envs_config_module:
+                self.fail("Konfiguracni soubor {}.py nenalezen nikde v ceste".format(ENVS_CONFIG_NAME))
+            if not self._check_current_dir():
+                self.fail("Adresar neobsahuje slozku k8s nebo Dockerfile. Jsme uvnitr modulu?")
 
         if self.args.command in NEEDS_K8S_LOGIN and not self._am_i_logged_in():
-            self.fail("Nejste prihlaseni, zkuste 'sostool kubelogin'")
+            self.fail("Nejste prihlaseni, zkuste 'vindaloo kubelogin'")
 
         self.do_command()
 
