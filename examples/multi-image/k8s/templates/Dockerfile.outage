@@ -1,0 +1,36 @@
+FROM doc.ker.dev.dszn.cz/debian:stretch
+LABEL maintainer="{{{maintainer}}}"
+LABEL description="SOS adminweb outage"
+
+EXPOSE 8000
+
+# Nasetujeme český UTF-8 locale a globální jazyk.
+RUN echo "cs_CZ.UTF-8 UTF-8" >> /etc/locale.gen
+RUN echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+RUN locale-gen
+# Tohle je nasetovani jazyka pouze lokalne behem buildu.
+ENV LANG="en_US.UTF-8"
+ENV LC_CTYPE="en_US.UTF-8"
+
+RUN apt-get update && apt-get upgrade -y
+
+RUN apt-get install -y szn-nginx szn-nginx-conf-ssl
+
+RUN groupadd -r --gid=1000 sos-adminweb-outage && \
+    useradd -r --uid=1000 -b /home/sos-adminweb-outage -d /home/sos-adminweb-outage -m -s /bin/bash -g sos-adminweb-outage sos-adminweb-outage
+ENV USER="sos-adminweb-outage"
+
+COPY adminweb-proxy/conf/nginx-outage.conf /www/sos/adminweb-outage/conf/nginx-outage.conf
+COPY adminweb-proxy/conf/mime.types /www/sos/adminweb-outage/conf/mime.types
+COPY adminweb-proxy/static/503.html /www/sos/adminweb-outage/web/503.html
+
+COPY adminweb/src/robots.txt /www/sos/adminweb-outage/web/robots.txt
+
+RUN mkdir -p /www/sos/adminweb-outage/bin \
+            /www/nginx/var/lib/szn-sos-outage-body \
+            /www/nginx/lib/szn-sos-adminweb-outage \
+            /www/sos/adminweb-outage/log \
+            /var/run/szn-sos-adminweb-outage
+
+ENTRYPOINT ["/www/nginx/sbin/nginx", "-c", "/www/sos/adminweb-outage/conf/nginx-outage.conf"]
+LABEL version="{{version}}"

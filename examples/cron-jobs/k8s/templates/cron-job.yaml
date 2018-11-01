@@ -1,0 +1,24 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ident_label}}
+spec:
+  schedule: "{{schedule}}"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: sos-robot
+        spec:
+          containers:
+          - name: {{ident_label}}
+            image: {{image}}
+            command: ["sh", "-c", "{{{command}}}"]
+            env:
+            {{#env}}
+            - name: {{key}}
+              value: {{val}}
+            {{/env}}
+          restartPolicy: Never

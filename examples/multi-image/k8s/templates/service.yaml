@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ident_label}}
+  labels:
+    name: {{ident_label}}
+spec:
+  type: NodePort
+  ports:
+  {{#ports}}
+  - name: {{name}}
+    nodePort: {{nodePort}}
+    port: {{port}}
+    protocol: TCP
+  {{/ports}}
+  selector:
+    app: {{app_name}}

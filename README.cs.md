@@ -14,53 +14,78 @@ Každý projekt/komponenta/služba pak obsahuje adresář `k8s`, který obsahuje
 pro build a nasazení této komponenty a z ní `Lů`  generuje jednotlivé deploymenty, Dockerfiles, atd.
 a ty pak předává `kubectl`.
 
-Instalace
+Požadavky
 ---------
 
 Vyžadován je Python 3.5 a vyšší.
 
+
+Instalace
+---------
+
+Stáhnout poslední [binárku](`https://vindaloo.dev.dszn.cz/vindaloo.pex`)
+
+```
+sudo wget --no-check-certificate -O /usr/bin/vindaloo https://vindaloo.dev.dszn.cz/vindaloo.pex
+sudo chmod +x /usr/bin/vindaloo
+```
 
 Co to umí
 ---------
 
 - Ubuildit dockerové image
 - Pushnout
+- deploynout do K8S
 - zkontrolovat verze v K8S
 - přihlásit se do clusteru
-- deploynout do clusteru, jen selektivně změněné
+
+Proč použít právě Lů a ne jiný nástroj
+--------------------------------------
+
+- distribuuje se jako jeden spustitelný soubor, netřeba instalace
+- konfiguruje se pomocí Pythoních souborů a umožňuje tak velmi malou duplikaci kódu a značnou expresivitu
+- umožňuje šablonování pomocí jazyka Mustache (pystache)
+- umožňuje includování částí šablon v Dockerfile
+- umí z jedné komponenty vybuildit několik docker imagů
+- umí měnit kontext pro build docker image
+- je téměř kompletně pokrytý testy
 
 
 Typycké použití
 ---------------
 
 ```
-cd projekt  (musi obsahovat adresar k8s)
-vindaloo.pex versions
+cd projekt  
+vindaloo init .
 
-vindaloo.pex build sos/groupware_bridge
-vindaloo.pex push sos/groupware_bridge
-vindaloo.pex deploy dev ko
-vindaloo.pex deploy dev ng
+vindaloo build
+vindaloo push
+vindaloo deploy dev ko
+vindaloo deploy dev ng
+
+vindaloo versions
 ```
 
 Hilfe
 -----
 
 ```
-usage: vindaloo.pex [-h] [--debug] [--noninteractive] [--dryrun]
-                    {build,pull,push,kubeenv,versions,kubelogin,deploy,build-push-deploy}
-                    ...
+usage: vindaloo [-h] [--debug] [--noninteractive] [--quiet] [--dryrun]
+                {init,build,pull,push,kubeenv,versions,kubelogin,deploy,build-push-deploy}
+                ...
 
 Nastroj pro usnadneni prace s dockerem a kubernetes
 
 optional arguments:
   -h, --help            show this help message and exit
   --debug
-  --noninteractive
+  --noninteractive      Na nic se nepta
+  --quiet               Potlaci vystup
   --dryrun              Jen predstira, nedela zadne nevratne zmeny
 
 commands:
-  {build,pull,push,kubeenv,versions,kubelogin,deploy,build-push-deploy}
+  {init,build,pull,push,kubeenv,versions,kubelogin,deploy,build-push-deploy}
+    init                pripravi projekt pro praci s Vindaloo
     build               ubali Docker image (vsechny)
     pull                pullne docker image (vsechny)
     push                pushne docker image (vsechny)
@@ -71,29 +96,29 @@ commands:
     build-push-deploy   udela vsechny tri kroky
 ```
 
-Struktura K8S
--------------
+Konfigurace projektu
+--------------------
 
 ```
+vindaloo_conf.py
 k8s
     templates
         - Dockerfile
         - deployment.yaml
         - service.yaml
-        - some_other.yaml
 
     - base.py
-    - test.py
     - dev.py
-    - staging.py
+    - test.py
     - stable.py
     - versions.json
-vindaloo_conf.py
 ```
 
-`vindaloo_conf.py` obsahuje definici seznamu prostředí, jím odpovídající k8s namespacy a seznam k8s clusterů,
+`vindaloo_conf.py` obsahuje definici běhových prostředí (dev, test, stable), jím odpovídající k8s namespacy a seznam k8s clusterů,
 do kterých budeme nasazovat.
-Soubor může být umístěn v adresáří komponenty nebo kdekoliv výše.
+Soubor může být umístěn v adresáří komponenty nebo kdekoliv výše (pokud konfiguraci sdílíme napříč více komponentami).
+
+Konfigurace deploymentu komponenty je umístěna ve složce `k8s`, kde najdeme několik souborů a složku:
 
 `templates` obsahuje šablony generovaných souborů. Uvnitř mají mustache syntaxi.
 Dovoluje i jednoduché cyckly atp. Je to takový neseznamý TENG :-)
@@ -105,6 +130,7 @@ konfigurace pro všechna prostředí.
 `[dev/test/...].py` jsou konfiguráky pro jednotlivá prostředí a obsahují věci pro ně specifické (např. nodePorty).
 
 `versions.json` je konfigurák definující verze imagů, které chceme buildit/nasadit.
+Jelikož je to JSON, můžeme ho snadno číst i zapisovat programově.
 
 
 Ukázkový vindaloo_conf.py
@@ -315,6 +341,10 @@ spec:
   selector:
     app: {{app_name}}
 ```
+
+Ukázky složitější konfigurace:
+- [s builděním několika imagů](examples/multi-image/k8s)
+- [s generovanými CronJoby](examples/cron-jobs/k8s)
 
 Jak `Lůa` ubuildit
 ------------------
