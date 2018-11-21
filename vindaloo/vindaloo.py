@@ -321,10 +321,11 @@ class Vindaloo:
             command_args = [
                 "docker",
                 "build",
-                "--no-cache",
                 "-t",
-                self._image_name_with_tag(conf['config']),
+                self._image_name_with_tag(conf['config'])
             ]
+            if not self.args.cache:
+                command_args.append("--no-cache")
             if self.args.latest:
                 command_args.extend([
                     '-t',
@@ -645,6 +646,7 @@ class Vindaloo:
         build_parser = subparsers.add_parser('build', help='ubali Docker image (vsechny)')
         build_parser.add_argument('image', help='image, ktery chceme ubildit', nargs='?', action='append')
         build_parser.add_argument('--latest', help='tagnout image i jako latest', action='store_true')
+        build_parser.add_argument('--cache', help='pouzit cache', action='store_true')
 
         pull_parser = subparsers.add_parser('pull', help='pullne docker image (vsechny)')
         pull_parser.add_argument('image', help='image, ktery chceme pullnout', nargs='?', action='append')
