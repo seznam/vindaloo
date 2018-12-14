@@ -38,6 +38,7 @@ Co to umí
 - deploynout do K8S
 - zkontrolovat verze v K8S
 - přihlásit se do clusteru
+- napovídat v bashi
 
 Proč použít právě Lů a ne jiný nástroj
 --------------------------------------
@@ -49,13 +50,14 @@ Proč použít právě Lů a ne jiný nástroj
 - umí z jedné komponenty vybuildit několik docker imagů
 - umí měnit kontext pro build docker image
 - je téměř kompletně pokrytý testy
+- umí napovídat přepínače, prostředí i image použité v komponentě
 
 
 Typycké použití
 ---------------
 
 ```
-cd projekt  
+cd projekt
 vindaloo init .
 
 vindaloo build
@@ -64,6 +66,15 @@ vindaloo deploy dev ko
 vindaloo deploy dev ng
 
 vindaloo versions
+```
+
+Napovídání v bashi
+------------------
+
+Pro zprovoznění napovídání je potřeba přidat do `~/.bashrc`:
+
+```
+source <(vindaloo completion)
 ```
 
 Hilfe

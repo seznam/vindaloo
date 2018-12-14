@@ -12,6 +12,7 @@ import tempfile
 from typing import Any, Dict, List, Set, BinaryIO
 import urllib.request
 
+import argcomplete
 import pystache
 
 from .examples import (
@@ -35,7 +36,7 @@ NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy')
 CONFIG_DIR = 'k8s'
 CHECK_VERSION_URL = 'https://vindaloo.dev.dszn.cz/version.json'
 
-VERSION = '1.11.0'
+VERSION = '1.12.0'
 
 
 class Vindaloo:
@@ -632,6 +633,13 @@ class Vindaloo:
         except Exception:
             pass
 
+    def output_completion(self):
+        self._out(argcomplete.shellcode(
+            'vindaloo',
+            False,
+            'bash',
+        ))
+
     def do_command(self, command: str = None) -> None:
         command = command or self.args.command
 
@@ -655,9 +663,24 @@ class Vindaloo:
             self.build_images()
             self.push_images()
             self.k8s_deploy()
+        elif command == "completion":
+            self.output_completion()
+
+    def _image_completer(self, **kwargs):
+        if not self.config_module:
+            self.config_module = self._import_config(NONE)
+
+        if not self.config_module:
+            return []
+
+        images = []
+        for conf in self.config_module.DOCKER_FILES:
+            image_name = conf['config']['image_name']
+            # jmeno bez hostu, napr. sos/adminserver
+            images.append(self._strip_image_name(image_name))
+        return images
 
     def main(self) -> None:
-        self._check_version()
         self._import_envs_config()
 
         parser = argparse.ArgumentParser(description=self.__class__.__doc__)
@@ -672,15 +695,21 @@ class Vindaloo:
         build_parser.add_argument('dir', help='slozka projektu')
 
         build_parser = subparsers.add_parser('build', help='ubali Docker image (vsechny)')
-        build_parser.add_argument('image', help='image, ktery chceme ubildit', nargs='?', action='append')
+        build_parser.add_argument(
+            'image', help='image, ktery chceme ubildit', nargs='?', action='append'
+        ).completer = self._image_completer
         build_parser.add_argument('--latest', help='tagnout image i jako latest', action='store_true')
         build_parser.add_argument('--cache', help='pouzit cache', action='store_true')
 
         pull_parser = subparsers.add_parser('pull', help='pullne docker image (vsechny)')
-        pull_parser.add_argument('image', help='image, ktery chceme pullnout', nargs='?', action='append')
+        pull_parser.add_argument(
+            'image', help='image, ktery chceme pullnout', nargs='?', action='append'
+        ).completer = self._image_completer
 
         push_parser = subparsers.add_parser('push', help='pushne docker image (vsechny)')
-        push_parser.add_argument('image', help='image, ktery chceme pushnout', nargs='?', action='append')
+        push_parser.add_argument(
+            'image', help='image, ktery chceme pushnout', nargs='?', action='append'
+        ).completer = self._image_completer
         push_parser.add_argument('--latest', help='pushnout image i jako latest', action='store_true')
         push_parser.add_argument('--registry', help='tagne image a pushne do jine registry')
 
@@ -736,7 +765,9 @@ class Vindaloo:
             choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
             default='ko', nargs='?'
         )
-        bpd_parser.add_argument('image', help='image, ktery chceme ubuildit/pushnout', nargs='?', action='append')
+        bpd_parser.add_argument(
+            'image', help='image, ktery chceme ubuildit/pushnout', nargs='?', action='append'
+        ).completer = self._image_completer
         bpd_parser.add_argument('--latest', help='pushnout image i jako latest', action='store_true')
         bpd_parser.add_argument('--registry', help='tagne image a pushne do jine registry')
         bpd_parser.add_argument(
@@ -744,11 +775,20 @@ class Vindaloo:
             action='store_true'
         )
 
+        subparsers.add_parser('completion', help='vypise prikazy pro bash completion')
+
+        argcomplete.autocomplete(parser)
+
         self.args, _ = parser.parse_known_args()
+        if not self.args.command:
+            parser.print_help()
 
         self.config_module = self._import_config(NONE)
 
-        if self.args.command != 'init':
+        if self.args.command != 'completion':
+            self._check_version()
+
+        if self.args.command not in ('init', 'completion'):
             if not self.envs_config_module:
                 self.fail("Konfiguracni soubor {}.py nenalezen nikde v ceste".format(ENVS_CONFIG_NAME))
             if not self._check_current_dir():
