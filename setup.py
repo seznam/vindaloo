@@ -1,7 +1,9 @@
+from vindaloo.vindaloo import VERSION
+
 from distutils.core import setup
 setup(
     name='vindaloo',
-    version='1.9.0',
+    version=VERSION,
     install_requires=[
         'pystache',
     ],

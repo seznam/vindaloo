@@ -23,4 +23,5 @@ def loo():
     loo = Vindaloo()
     loo.cmd = mock.Mock()
     loo.cmd.return_value.returncode = 0
+    loo._check_version = mock.Mock()
     return loo

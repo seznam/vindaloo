@@ -5,10 +5,12 @@ import imp
 from importlib import import_module
 import json
 import os
+import ssl
 import subprocess
 import sys
 import tempfile
 from typing import Any, Dict, List, Set, BinaryIO
+import urllib.request
 
 import pystache
 
@@ -31,6 +33,9 @@ SUCCESS_REPLY = ("Y", "y", "a", "A")
 ENVS_CONFIG_NAME = 'vindaloo_conf'
 NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy')
 CONFIG_DIR = 'k8s'
+CHECK_VERSION_URL = 'https://vindaloo.dev.dszn.cz/version.json'
+
+VERSION = '1.10.0'
 
 
 class Vindaloo:
@@ -605,6 +610,21 @@ class Vindaloo:
 
         self._create_file(conf['template'], tmp_config, force_dest_file="Dockerfile")
 
+    def _check_version(self):
+        try:
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+            with urllib.request.urlopen(CHECK_VERSION_URL, timeout=0.5, context=context) as f:
+                data = json.loads(f.read())
+                if data.get('version') != VERSION:
+                    self._out('Je k dispozici novější verze: {}, nainstalovaná verze: {}'.format(
+                        data.get('version'),
+                        VERSION,
+                    ))
+        except Exception:
+            pass
+
     def do_command(self, command: str = None) -> None:
         command = command or self.args.command
 
@@ -630,6 +650,7 @@ class Vindaloo:
             self.k8s_deploy()
 
     def main(self) -> None:
+        self._check_version()
         self._import_envs_config()
 
         parser = argparse.ArgumentParser(description=self.__class__.__doc__)
