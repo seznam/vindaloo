@@ -35,7 +35,7 @@ NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy')
 CONFIG_DIR = 'k8s'
 CHECK_VERSION_URL = 'https://vindaloo.dev.dszn.cz/version.json'
 
-VERSION = '1.10.0'
+VERSION = '1.11.0'
 
 
 class Vindaloo:
@@ -193,6 +193,13 @@ class Vindaloo:
 
                 res = self.cmd(["kubectl", "apply", "-f", temp_file.name])
                 assert res.returncode == 0
+
+        if self.args.watch:
+            for yaml_conf in self.config_module.K8S_OBJECTS['deployment']:
+                deployment_name = yaml_conf.get('config', {}).get('ident_label', '')
+                if deployment_name:
+                    self._out('Cekam na dokonceni rolloutu {}'.format(deployment_name))
+                    self.cmd(["kubectl", "rollout", "status", "deployment", deployment_name])
 
     def _import_envs_config(self) -> None:
         """
@@ -618,7 +625,7 @@ class Vindaloo:
             with urllib.request.urlopen(CHECK_VERSION_URL, timeout=0.5, context=context) as f:
                 data = json.loads(f.read())
                 if data.get('version') != VERSION:
-                    self._out('Je k dispozici novější verze: {}, nainstalovaná verze: {}'.format(
+                    self._out('Je k dispozici novejsi verze: {}, nainstalovana verze: {}'.format(
                         data.get('version'),
                         VERSION,
                     ))
@@ -706,6 +713,10 @@ class Vindaloo:
 
         deploy_parser = subparsers.add_parser('deploy', help='nasadi zmeny do clusteru')
         deploy_parser.add_argument(
+            '--watch', help='Pockat na dokonceni rolloutu nove verze',
+            action='store_true'
+        )
+        deploy_parser.add_argument(
             'environment', help='prostredi, kam chceme nasadit',
             choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple()
         )
@@ -728,6 +739,10 @@ class Vindaloo:
         bpd_parser.add_argument('image', help='image, ktery chceme ubuildit/pushnout', nargs='?', action='append')
         bpd_parser.add_argument('--latest', help='pushnout image i jako latest', action='store_true')
         bpd_parser.add_argument('--registry', help='tagne image a pushne do jine registry')
+        bpd_parser.add_argument(
+            '--watch', help='Pockat na dokonceni rolloutu nove verze',
+            action='store_true'
+        )
 
         self.args, _ = parser.parse_known_args()
 
