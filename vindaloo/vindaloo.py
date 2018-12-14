@@ -5,6 +5,7 @@ import imp
 from importlib import import_module
 import json
 import os
+import pkg_resources
 import ssl
 import subprocess
 import sys
@@ -23,7 +24,6 @@ from .examples import (
     EXAMPLE_DEPLOYMENT,
     EXAMPLE_SERVICE,
 )
-from .login import KUBE_LOGIN_SCRIPT
 
 
 NONE = "base"
@@ -36,7 +36,7 @@ NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy')
 CONFIG_DIR = 'k8s'
 CHECK_VERSION_URL = 'https://vindaloo.dev.dszn.cz/version.json'
 
-VERSION = '1.12.0'
+VERSION = '1.13.0'
 
 
 class Vindaloo:
@@ -63,11 +63,9 @@ class Vindaloo:
         """
         Spusti bash skript na prihlaseni do k8s
         """
+        filename = pkg_resources.resource_filename(__name__, 'data/kube-dex-login.sh')
         locality = self.args.cluster
-        temp_file = tempfile.NamedTemporaryFile()
-        temp_file.write(bytes(KUBE_LOGIN_SCRIPT, 'utf-8'))
-        temp_file.flush()
-        spc = self.cmd(['bash', temp_file.name, locality])
+        spc = self.cmd(['bash', filename, locality])
         assert spc.returncode == 0
 
     def _confirm(self, message: str, default: str = "y") -> bool:

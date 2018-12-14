@@ -5,7 +5,15 @@ setup(
     name='vindaloo',
     version=VERSION,
     install_requires=[
+        'argcomplete',
         'pystache',
+        'typing',
     ],
-    packages=['vindaloo']
+    entry_points={
+        'console_scripts': [
+            'vindaloo = vindaloo.vindaloo:run'
+        ]
+    },
+    packages=['vindaloo'],
+    include_package_data=True
 )
