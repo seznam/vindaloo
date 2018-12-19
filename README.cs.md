@@ -30,6 +30,12 @@ sudo wget --no-check-certificate -O /usr/bin/vindaloo https://vindaloo.dev.dszn.
 sudo chmod +x /usr/bin/vindaloo
 ```
 
+nebo přes naší pypi proxy:
+
+```
+pip3 install szn-vindaloo
+```
+
 Co to umí
 ---------
 

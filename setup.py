@@ -2,8 +2,11 @@ from vindaloo.vindaloo import VERSION
 
 from distutils.core import setup
 setup(
-    name='vindaloo',
+    name='szn-vindaloo',
     version=VERSION,
+    description='K8S deployer',
+    author='Daniel Milde',
+    author_email='daniel.milde@firma.seznam.cz',
     install_requires=[
         'argcomplete',
         'pystache',
@@ -15,5 +18,8 @@ setup(
         ]
     },
     packages=['vindaloo'],
-    include_package_data=True
+    include_package_data=True,
+    classifiers=[
+        'Programming Language :: Python :: 3',
+    ],
 )
