@@ -1,9 +1,7 @@
-from vindaloo.vindaloo import VERSION
-
-from distutils.core import setup
+from setuptools import setup
 setup(
     name='szn-vindaloo',
-    version=VERSION,
+    version='1.13.2',
     description='K8S deployer',
     author='Daniel Milde',
     author_email='daniel.milde@firma.seznam.cz',
