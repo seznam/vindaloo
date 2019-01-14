@@ -767,6 +767,7 @@ class Vindaloo:
             'image', help='image, ktery chceme ubuildit/pushnout', nargs='?', action='append'
         ).completer = self._image_completer
         bpd_parser.add_argument('--latest', help='pushnout image i jako latest', action='store_true')
+        bpd_parser.add_argument('--cache', help='pouzit cache', action='store_true')
         bpd_parser.add_argument('--registry', help='tagne image a pushne do jine registry')
         bpd_parser.add_argument(
             '--watch', help='Pockat na dokonceni rolloutu nove verze',
