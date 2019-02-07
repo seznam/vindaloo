@@ -5,4 +5,5 @@ vindaloo.egg-info
 htmlcov
 .coverage
 .mypy_cache
+.idea
 tests/Dockerfile

@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import argparse
+import base64
 import imp
 from importlib import import_module
 import json
@@ -10,7 +11,7 @@ import ssl
 import subprocess
 import sys
 import tempfile
-from typing import Any, Dict, List, Set, BinaryIO
+from typing import Any, Dict, List, Set, BinaryIO, Tuple
 import urllib.request
 
 import argcomplete
@@ -32,11 +33,15 @@ K8S_OBJECT_TYPES = [
 ]
 SUCCESS_REPLY = ("Y", "y", "a", "A")
 ENVS_CONFIG_NAME = 'vindaloo_conf'
-NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy')
+NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy', 'edit-secret')
 CONFIG_DIR = 'k8s'
 CHECK_VERSION_URL = 'https://vindaloo.dev.dszn.cz/version.json'
 
 VERSION = '1.13.4'
+
+
+class RefreshException(Exception):
+    pass
 
 
 class Vindaloo:
@@ -48,6 +53,7 @@ class Vindaloo:
         self.envs_config_module = None  # konfigurace prostredi (clustery, namespacy)
         self.config_module = None  # konfigurace aktualne vybraneho prostredi (Dockerfily, deploymenty, porty, ...)
         self.args = None
+        self.changed_secrets = {}  # Secrety naplanovane ke zmene
 
     def _am_i_logged_in(self) -> bool:
         """
@@ -159,7 +165,7 @@ class Vindaloo:
         """
         dep_env = self.args.environment
         if dep_env not in self.envs_config_module.LOCAL_ENVS:
-            self.fail("Musite zadat EXISTUJICI prostredi ktere chcete nasadit. {} nezname.".format(dep_env))
+            self.fail("Musite zadat EXISTUJICI prostredi. {} nezname.".format(dep_env))
         self._select_k8s_context(dep_env, self.args.cluster)
 
     def k8s_deploy(self) -> None:
@@ -638,6 +644,133 @@ class Vindaloo:
             'bash',
         ))
 
+    def edit_secret(self) -> None:
+        self.k8s_select_env()
+        res = self.cmd(["kubectl", "get", "secrets", "-o", "json"], get_stdout=True, run_always=True)
+        json_data = json.loads(res.stdout.decode('utf-8'))
+        secrets = self._parse_secrets(json_data)
+        while self._select_secret(secrets):
+            pass
+
+    def _parse_secrets(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        items = data.get("items", [])
+        return [
+            dict(
+                name=i["metadata"]["name"],
+                label="{} ({})".format(i["metadata"]["name"], i["type"]),
+                values={k: base64.decodebytes(bytes(v, 'utf-8')) for k, v in i["data"].items()}
+            ) for i in items
+        ]
+
+    def _select_secret(self, secrets: List[Dict[str, Any]]) -> bool:
+
+        self.changed_secrets = {}
+        self._out("\nSecrets in namespace\n")
+
+        if not secrets:
+            self._out("No secrets found.")
+            return False
+
+        options = [(str(idx+1), i["name"]) for idx, i in enumerate(secrets)] + [("x", "exit"),]
+        for i in options:
+            self._out("{}) {}".format(i[0], i[1]))
+        self._out("")
+
+        choice = self._select("Select secret: ", options)
+        if choice == "x":
+            return False
+
+        key = dict(options)[choice]
+        item = list(filter(lambda x: x["name"] == key, secrets))[0]  # vzdycky musi byt jedna odpoved
+
+        while self._select_item(item):
+            pass
+
+        return True
+
+    def _select_item(self, item: Dict[str, Any]) -> bool:
+        self._out("\nValues in secret:\n")
+
+        if not item["values"]:
+            self._out("No values found.")
+            return False
+
+        options = [(str(idx+1), i) for idx, i in enumerate(item["values"].keys())]
+
+        if self.changed_secrets:
+            options.append(("c", "Commit changes ({})".format(len(self.changed_secrets))))
+
+        options.append(("x", "<= back"))
+
+        for i in options:
+            self._out("{}) {}".format(i[0], i[1]))
+
+        self._out("")
+
+        choice = self._select("Select item to edit: ", options)
+        if choice == "x":
+            return False
+
+        if choice == "c":
+            self._commit_secret_values(item)
+            return False
+
+        key = dict(options)[choice]
+        self._out("\nSelected:", key)
+
+        val = item["values"][key]
+
+        new_val = self._edit_value(val)
+
+        if val == new_val:
+            self._out("\nValue remains unchanged.\n")
+            return True
+
+        self.changed_secrets[key] = new_val
+
+        return True
+
+    def _select(self, question: str, options: Tuple[str, str]) -> str:
+        res = None
+        while res not in [x[0] for x in options]:
+            res = input(question)
+
+        return res
+
+    def _edit_value(self, val: bytes) -> bytes:
+        file_, path_ = tempfile.mkstemp()
+        try:
+            os.write(file_, val)
+            os.close(file_)
+
+            editor = os.getenv('EDITOR', 'vi')
+
+            if editor in ["vi", "vim"]:  # Prevent adding NL at the EOF
+                editor = editor + " -b"
+
+            subprocess.call('{} {}'.format(editor, path_), shell=True)
+
+            after_edit = open(path_, "rb").read()
+            return after_edit
+
+        finally:
+            os.unlink(path_)
+
+    def _commit_secret_values(self, item: Dict[str, Any]) -> None:
+        changed = [
+            '\"{}\":\"{}\"'.format(
+                key,
+                base64.encodebytes(val).decode("utf-8").replace("\n", "")
+            ) for key, val in self.changed_secrets.items()
+        ]
+        cmd = ["kubectl", "patch", "secret", item["name"], "-p", "{{\"data\":{{{}}}}}".format(",".join(changed))]
+        res = self.cmd(cmd)
+        assert res.returncode == 0
+
+        print("Saved!")
+
+        raise RefreshException()  # Have to load data again
+
     def do_command(self, command: str = None) -> None:
         command = command or self.args.command
 
@@ -663,6 +796,11 @@ class Vindaloo:
             self.k8s_deploy()
         elif command == "completion":
             self.output_completion()
+        elif command == "edit-secret":
+            try:
+                self.edit_secret()
+            except RefreshException:
+                self.edit_secret()
 
     def _image_completer(self, **kwargs):
         if not self.config_module:
@@ -772,6 +910,20 @@ class Vindaloo:
         bpd_parser.add_argument(
             '--watch', help='Pockat na dokonceni rolloutu nove verze',
             action='store_true'
+        )
+
+        edit_parser = subparsers.add_parser('edit-secret', help='Provede modifikaci secretu')
+        edit_parser.add_argument(
+            'environment',
+            help='env pro ktery chceme verze zobrazit',
+            choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple(),
+            nargs='?'
+        )
+        edit_parser.add_argument(
+            'cluster',
+            help='nazev clusteru (ko/ng)',
+            choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
+            default='ko', nargs='?'
         )
 
         subparsers.add_parser('completion', help='vypise prikazy pro bash completion')
