@@ -4,7 +4,7 @@ from utils import chdir
 
 
 def test_deploy(loo):
-    # nafakujeme parametry
+    # fake arguments
     sys.argv = ['vindaloo', '--noninteractive', 'deploy', 'dev']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = [
@@ -15,7 +15,7 @@ def test_deploy(loo):
     with chdir('tests'):
         loo.main()
 
-    # zkontrolujeme s jakymi parametry byl zavolan docker a kubectl
+    # check arguments docker and kubectl was called with
     assert len(loo.cmd.call_args_list) == 3
     auth_cmd = loo.cmd.call_args_list[0][0][0]
     use_context_cmd = loo.cmd.call_args_list[1][0][0]
@@ -42,7 +42,7 @@ def test_deploy(loo):
 
 
 def test_deploy_one_cluster(loo):
-    # nafakujeme parametry
+    # fake arguments
     sys.argv = ['vindaloo', '--noninteractive', 'deploy', 'dev', 'ng']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = [
@@ -53,7 +53,7 @@ def test_deploy_one_cluster(loo):
     with chdir('tests'):
         loo.main()
 
-    # zkontrolujeme s jakymi parametry byl zavolan docker a kubectl
+    # check arguments docker and kubectl was called with
     assert len(loo.cmd.call_args_list) == 3
     auth_cmd = loo.cmd.call_args_list[0][0][0]
     use_context_cmd = loo.cmd.call_args_list[1][0][0]
@@ -80,7 +80,7 @@ def test_deploy_one_cluster(loo):
 
 
 def test_deploy_watch(loo):
-    # nafakujeme parametry
+    # fake arguments
     sys.argv = ['vindaloo', '--noninteractive', 'deploy', '--watch', 'dev']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = [
@@ -91,7 +91,7 @@ def test_deploy_watch(loo):
     with chdir('tests'):
         loo.main()
 
-    # zkontrolujeme s jakymi parametry byl zavolan docker a kubectl
+    # check arguments docker and kubectl was called with
     assert len(loo.cmd.call_args_list) == 4
     auth_cmd = loo.cmd.call_args_list[0][0][0]
     use_context_cmd = loo.cmd.call_args_list[1][0][0]

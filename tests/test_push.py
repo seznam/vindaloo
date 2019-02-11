@@ -4,7 +4,7 @@ from utils import chdir
 
 
 def test_push_all(loo):
-    # nafakujeme parametry
+    # fake arguments
     sys.argv = ['vindaloo', '--noninteractive', 'push']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = [
@@ -15,7 +15,7 @@ def test_push_all(loo):
     with chdir('tests'):
         loo.main()
 
-    # zkontrolujeme s jakymi parametry byl zavolan docker
+    # check the arguments docker was called with
     assert len(loo.cmd.call_args_list) == 3
     push_cmd = loo.cmd.call_args_list[1][0][0]
     push2_cmd = loo.cmd.call_args_list[2][0][0]
@@ -42,7 +42,7 @@ def test_push_one(loo):
     with chdir('tests'):
         loo.main()
 
-    # zkontrolujeme s jakymi parametry byl zavolan docker
+    # check the arguments docker was called with
     assert len(loo.cmd.call_args_list) == 2
     assert loo.cmd.call_args_list[1][0][0] == [
         'docker',
@@ -62,7 +62,7 @@ def test_push_not_built_image(loo):
     with chdir('tests'):
         loo.main()
 
-    # zkontrolujeme s jakymi parametry byl zavolan docker
+    # check the arguments docker was called with
     assert len(loo.cmd.call_args_list) == 1
     assert loo.cmd.call_args_list[0][0][0] == [
         'docker', 'images', '--format', '{{.Repository}}:{{.Tag}}'
@@ -80,7 +80,7 @@ def test_push_latest(loo):
     with chdir('tests'):
         loo.main()
 
-    # zkontrolujeme s jakymi parametry byl zavolan docker
+    # check the arguments docker was called with
     assert len(loo.cmd.call_args_list) == 3
     push_cmd = loo.cmd.call_args_list[1][0][0]
     push2_cmd = loo.cmd.call_args_list[2][0][0]
@@ -108,7 +108,7 @@ def test_push_with_registry(loo):
     with chdir('tests'):
         loo.main()
 
-    # zkontrolujeme s jakymi parametry byl zavolan docker
+    # check the arguments docker was called with
     assert len(loo.cmd.call_args_list) == 3
     tag_cmd = loo.cmd.call_args_list[1][0][0]
     push_cmd = loo.cmd.call_args_list[2][0][0]

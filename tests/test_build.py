@@ -4,13 +4,13 @@ from utils import chdir
 
 
 def test_build_all(loo):
-    # nafakujeme parametry
+    # fake parameters
     sys.argv = ['vindaloo', '--noninteractive', 'build']
 
     with chdir('tests'):
         loo.main()
 
-    # zkontrolujeme s jakymi parametry byl zavolan docker
+    # check the parameters docker was called with
     assert loo.cmd.call_args_list == [
         (([
             'docker',
@@ -30,7 +30,7 @@ def test_build_all(loo):
         ],),),
     ]
 
-    # zkontrolujeme vygenerovany Dockerfile
+    # check generated Dockerfile
     with open('tests/Dockerfile', 'r') as fp:
         assert fp.read() == """LABEL maintainer="Test Test <test.test@firma.seznam.cz>"
 LABEL description="Bar"
@@ -44,7 +44,7 @@ def test_build_one(loo):
     with chdir('tests'):
         loo.main()
 
-    # zkontrolujeme s jakymi parametry byl zavolan docker
+    # check the parameters docker was called with
     assert loo.cmd.call_args_list == [
         (([
             'docker',
@@ -56,7 +56,7 @@ def test_build_one(loo):
         ],),),
     ]
 
-    # zkontrolujeme vygenerovany Dockerfile
+    # check generated Dockerfile
     with open('tests/Dockerfile', 'r') as fp:
         assert fp.read() == """FROM debian
 
@@ -72,7 +72,7 @@ def test_build_latest(loo):
     with chdir('tests'):
         loo.main()
 
-    # zkontrolujeme s jakymi parametry byl zavolan docker
+    # check the parameters docker was called with
     assert loo.cmd.call_args_list == [
         (([
             'docker',
@@ -85,7 +85,7 @@ def test_build_latest(loo):
         ],),),
     ]
 
-    # zkontrolujeme vygenerovany Dockerfile
+    # check generated Dockerfile
     with open('tests/Dockerfile', 'r') as fp:
         assert fp.read() == """FROM debian
 
@@ -101,7 +101,7 @@ def test_build_latest_with_cache(loo):
     with chdir('tests'):
         loo.main()
 
-    # zkontrolujeme s jakymi parametry byl zavolan docker
+    # check the parameters docker was called with
     assert loo.cmd.call_args_list == [
         (([
             'docker',
@@ -113,7 +113,7 @@ def test_build_latest_with_cache(loo):
         ],),),
     ]
 
-    # zkontrolujeme vygenerovany Dockerfile
+    # check generated Dockerfile
     with open('tests/Dockerfile', 'r') as fp:
         assert fp.read() == """FROM debian
 

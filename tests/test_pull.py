@@ -4,7 +4,7 @@ from utils import chdir
 
 
 def test_pull_all(loo):
-    # nafakujeme parametry
+    # fake arguments
     sys.argv = ['vindaloo', '--noninteractive', 'pull']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = []
@@ -12,7 +12,7 @@ def test_pull_all(loo):
     with chdir('tests'):
         loo.main()
 
-    # zkontrolujeme s jakymi parametry byl zavolan docker
+    # check the arguments docker was called with
     assert len(loo.cmd.call_args_list) == 3
     pull_cmd = loo.cmd.call_args_list[1][0][0]
     pull2_cmd = loo.cmd.call_args_list[2][0][0]
@@ -37,7 +37,7 @@ def test_pull_one(loo):
     with chdir('tests'):
         loo.main()
 
-    # zkontrolujeme s jakymi parametry byl zavolan docker
+    # check the arguments docker was called with
     assert len(loo.cmd.call_args_list) == 2
     assert loo.cmd.call_args_list[1][0][0] == [
         'docker',
@@ -56,7 +56,7 @@ def test_pull_already_present(loo):
     with chdir('tests'):
         loo.main()
 
-    # zkontrolujeme s jakymi parametry byl zavolan docker
+    # check the arguments docker was called with
     assert len(loo.cmd.call_args_list) == 1
     assert loo.cmd.call_args_list[0][0][0] == [
         'docker', 'images', '--format', '{{.Repository}}:{{.Tag}}'

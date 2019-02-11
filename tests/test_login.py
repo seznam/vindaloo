@@ -4,7 +4,7 @@ from utils import chdir
 
 
 def test_login_ko(loo):
-    # nafakujeme parametry
+    # fake arguments
     sys.argv = ['vindaloo', 'kubelogin', 'ko']
 
     with chdir('tests'):
@@ -15,7 +15,7 @@ def test_login_ko(loo):
 
 
 def test_login_ng(loo):
-    # nafakujeme parametry
+    # fake arguments
     sys.argv = ['vindaloo', 'kubelogin', 'ng']
 
     with chdir('tests'):

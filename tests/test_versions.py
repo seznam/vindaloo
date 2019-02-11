@@ -6,7 +6,7 @@ from vindaloo.vindaloo import Vindaloo
 
 
 def test_versions_match(capsys):
-    # nafakujeme parametry
+    # fake arguments
     sys.argv = ['vindaloo', 'versions']
 
     calls = [mock.Mock() for _ in range(5)]
@@ -22,7 +22,7 @@ def test_versions_match(capsys):
     with chdir('tests'):
         loo.main()
 
-    # zkontrolujeme s jakymi parametry byl zavolan kubectl
+    # check the arguments kubectl was called with
     assert len(loo.cmd.call_args_list) == 5
 
     assert loo.cmd.call_args_list[0][0][0] == [
@@ -61,13 +61,13 @@ def test_versions_match(capsys):
 
     output = capsys.readouterr().out.strip()
 
-    assert '[ROZDILNE]' not in output
+    assert '[DIFFERS]' not in output
     assert 'test/foo' in output
     assert 'test/bar' in output
 
 
 def test_versions_not_match(capsys):
-    # nafakujeme parametry
+    # fake arguments
     sys.argv = ['vindaloo', 'versions']
 
     def x(*args, **kwargs):
@@ -80,7 +80,7 @@ def test_versions_not_match(capsys):
     for call in calls:
         call.returncode = 0
     calls[2].stdout = b'doc.ker.dev.dszn.cz/test/foo:1.0.0 doc.ker.dev.dszn.cz/test/bar:2.0.0'  # ko
-    calls[4].stdout = b'doc.ker.dev.dszn.cz/test/foo:0.0.9 doc.ker.dev.dszn.cz/test/bar:2.0.0'  # ng ROZDILNE
+    calls[4].stdout = b'doc.ker.dev.dszn.cz/test/foo:0.0.9 doc.ker.dev.dszn.cz/test/bar:2.0.0'  # ng DIFFERS
 
     loo = Vindaloo()
     loo.cmd = mock.Mock()
@@ -89,7 +89,7 @@ def test_versions_not_match(capsys):
     with chdir('tests'):
         loo.main()
 
-    # zkontrolujeme s jakymi parametry byl zavolan kubectl
+    # check the arguments kubectl was called with
     assert len(loo.cmd.call_args_list) == 5
 
     assert loo.cmd.call_args_list[0][0][0] == [
@@ -128,6 +128,6 @@ def test_versions_not_match(capsys):
 
     output = capsys.readouterr().out.strip()
 
-    assert '[ROZDILNE]' in output
+    assert '[DIFFERS]' in output
     assert 'test/foo' in output
     assert 'test/bar' in output

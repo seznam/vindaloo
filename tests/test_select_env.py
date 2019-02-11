@@ -4,7 +4,7 @@ from utils import chdir
 
 
 def test_select_dev_ko(loo):
-    # nafakujeme parametry
+    # fake arguments
     sys.argv = ['vindaloo', 'kubeenv', 'dev', 'ko']
 
     with chdir('tests'):
@@ -14,7 +14,7 @@ def test_select_dev_ko(loo):
 
 
 def test_select_dev_ng(loo):
-    # nafakujeme parametry
+    # fake arguments
     sys.argv = ['vindaloo', 'kubeenv', 'dev', 'ng']
 
     with chdir('tests'):

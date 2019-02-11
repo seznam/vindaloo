@@ -1,7 +1,7 @@
 all: test pex-in-docker
 
 cache:
-	# vytvorime pycache
+	# create pycache
 	python main.py >/dev/null || true
 
 pex-in-docker:

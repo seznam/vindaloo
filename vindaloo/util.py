@@ -40,7 +40,7 @@ def do_cmd(command, print_it=True, get_output=False, extend_environment=None, ou
             elif output_pipe == 'stderr':
                 output_stream = p.stderr
             else:
-                raise ValueError('Nepovolena hodnota pro output_pipe')
+                raise ValueError('Invalid value for output_pipe')
 
             while True:
                 chunk = output_stream.read(1024)

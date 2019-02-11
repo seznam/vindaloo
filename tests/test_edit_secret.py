@@ -43,16 +43,12 @@ TEST_JSON = """{
 
 
 def test_parse_secrets(loo):
-    sys.argv = ['vindaloo', 'kubeenv', 'dev', 'ko']
-
     with chdir('tests'):
         res = loo._parse_secrets(json.loads(TEST_JSON))
         assert len(res) == 2
 
 
 def test_commit_secret_values(loo):
-
-    sys.argv = ['vindaloo', 'kubeenv', 'dev', 'ko']
 
     with chdir('tests'):
         loo.changed_secrets = {"a": b"b"}
