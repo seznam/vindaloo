@@ -105,7 +105,7 @@ class Vindaloo:
         if self._check_current_dir():
             self.fail("Project already contains `k8s` directory.")
 
-        maintainer_name = self._input_text("Full name: ")
+        maintainer_name = self._input_text("Your full name: ")
         maintainer_email = self._input_text("Your email: ")
         k8s_prefix = self._input_text("K8S namespace prefix (usualy name of team, for example. [avengers]-stable): ")
         k8s_prefix = k8s_prefix.rstrip('-')
@@ -162,7 +162,7 @@ class Vindaloo:
 
     def k8s_select_env(self) -> None:
         """
-        Switch to selected K8S kontext.
+        Switch to selected K8S context.
         """
         dep_env = self.args.environment
         if dep_env not in self.envs_config_module.LOCAL_ENVS:
@@ -204,7 +204,7 @@ class Vindaloo:
             for yaml_conf in self.config_module.K8S_OBJECTS['deployment']:
                 deployment_name = yaml_conf.get('config', {}).get('ident_label', '')
                 if deployment_name:
-                    self._out('Waiting for finish of rolloutu {}'.format(deployment_name))
+                    self._out('Waiting for rollout {} to finish'.format(deployment_name))
                     self.cmd(["kubectl", "rollout", "status", "deployment", deployment_name])
 
     def _import_envs_config(self) -> None:
@@ -228,7 +228,7 @@ class Vindaloo:
         """
         Nacte konfiguraci pro zadane prostredi
         """
-        # Make sure its file, to prevent import of some module from python path with same name
+        # Make sure it's file, to prevent importing some module from python path with same name
         if not os.path.isfile("{}/{}.py".format(CONFIG_DIR, env)):
             return None
 
@@ -245,7 +245,7 @@ class Vindaloo:
 
     def _check_current_dir(self) -> bool:
         """
-        Check if current dirr contains k8s subdir.
+        Check if current dir contains k8s subdir.
         """
         return os.path.isdir(CONFIG_DIR)
 
@@ -270,7 +270,7 @@ class Vindaloo:
 
     def _cmd_check(self, command: List[str], get_stdout: bool = False) -> bool:
         """
-        Runs command and returns if runt successfully.
+        Runs command and returns if finished successfully.
         """
         return self.cmd(command, get_stdout).returncode == 0
 
@@ -402,11 +402,11 @@ class Vindaloo:
                     continue
 
             if image_name_with_tag not in known_images:
-                self._out("skipping image {}, not built yet...".format(image_name_with_tag))
+                self._out("skipping image {}, it's not built yet...".format(image_name_with_tag))
                 continue
 
             if self.args.registry:
-                # change in image_name registry
+                # change registry in image_name
                 source_image = image_name_with_tag
                 image_name_with_tag = self._image_name_with_tag(conf['config'], registry=self.args.registry)
                 # tag original image to contain new registry
@@ -540,7 +540,7 @@ class Vindaloo:
         context = '{}-{}'.format(self.envs_config_module.K8S_NAMESPACES[env], cluster)
 
         if not self._cmd_check(["kubectl", "config", "use-context", context]):
-            if not self._confirm("K8s context not set {}. Should I create it?".format(context)):
+            if not self._confirm("K8s context is not set {}. Should I create it?".format(context)):
                 self._out('Deploy action terminated')
                 sys.exit(0)
             username = self._input_text("Insert domain name: ")
@@ -576,7 +576,7 @@ class Vindaloo:
 
         # Optionally offers edit
         if not self.args.noninteractive:
-            res = input("File {} was created. do you want to modify it? [n]:".format(template_file_name))
+            res = input("File {} was created. Do you want to modify it? [n]:".format(template_file_name))
             if res in ("a", "y", "A", "Y"):
                 editor = os.getenv('EDITOR', 'vi')
                 spc = subprocess.call('{} {}'.format(editor, temp_file.name), shell=True)
@@ -901,9 +901,9 @@ class Vindaloo:
         ).completer = self._image_completer
         bpd_parser.add_argument('--latest', help='push also as latest', action='store_true')
         bpd_parser.add_argument('--cache', help='use cache', action='store_true')
-        bpd_parser.add_argument('--registry', help='tag image a push into different registry')
+        bpd_parser.add_argument('--registry', help='tag image and push into different registry')
         bpd_parser.add_argument(
-            '--watch', help='Wait for rollout of new version',
+            '--watch', help='Wait for the new version to rollout',
             action='store_true'
         )
 
@@ -937,7 +937,7 @@ class Vindaloo:
             if not self.envs_config_module:
                 self.fail("Config file {}.py not found in path".format(ENVS_CONFIG_NAME))
             if not self._check_current_dir() and self.arg.commands not in DO_NOT_NEED_K8S_DIR:
-                self.fail("Directory does not contains k8s directory or Dockerfile. Are we in module directory?")
+                self.fail("Directory does not contain k8s subdirectory or Dockerfile is missing. Are we in module directory?")
 
         if self.args.command in NEEDS_K8S_LOGIN and not self._am_i_logged_in():
             self.fail("You are not logged in, try 'vindaloo kubelogin'")
