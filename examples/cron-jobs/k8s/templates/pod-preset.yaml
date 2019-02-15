@@ -8,4 +8,4 @@ spec:
       app: sos-robot
   env:
     - name: KUBERNETES_CLUSTER
-      value: "ko"
+      value: "ko1"

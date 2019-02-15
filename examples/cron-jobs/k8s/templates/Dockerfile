@@ -3,24 +3,23 @@ LABEL maintainer="{{{maintainer}}}"
 LABEL description="SOS robot"
 
 RUN apt-get install -y \
-        szn-python-frpcstorage \
-        szn-python-mysqldbwrapper \
-        szn-python2.7-chartdirector>=5.0.0
+        szn-python3.5-chartdirector>=5.0.0 \
+        python3-pymssql
 
-RUN groupadd -r --gid=1000 sos-robot && \
-    useradd -r --uid=1000 -b /www/sos/admin-robot -d /www/sos/admin-robot -m -s /bin/bash -g sos-robot sos-robot
+COPY robot/Pipfile robot/Pipfile.lock /www/sos/admin-robot/
+RUN cd /www/sos/admin-robot && https_proxy={{https_proxy}} pipenv install --system --deploy
 
 COPY robot/robot /www/sos/admin-robot/robot
 COPY robot/src /www/sos/admin-robot/bin
 COPY robot/debian/szn-sos-admin-robot.init /etc/init.d/szn-sos-admin-robot
 COPY robot/templ /www/sos/admin-robot/templ
+COPY robot/conf/admin-robot.conf /www/sos/admin-robot/conf/admin-robot.conf
+COPY maintenance/maintenance /www/sos/maintenance
 
 COPY libs/template.py /www/sos/admin-robot/bin/librobot/template.py
 COPY libs/mailer.py /www/sos/admin-robot/bin/librobot/mailer.py
 
 RUN mkdir -p /www/sos/admin-robot/log
-RUN chown sos-robot /www/sos/admin-robot/log
+RUN mkdir -p /www/sos/maintenance/log
 
-ENV USER="sos-robot"
-USER sos-robot
 LABEL version="{{version}}"

@@ -12,13 +12,43 @@ spec:
           labels:
             app: sos-robot
         spec:
+          restartPolicy: Never
+          volumes:
+          - name: localconfig
+            secret:
+              secretName: sos-core-local-conf
+          - name: robotpasswords
+            secret:
+              secretName: sos-robot-pass-conf
+          - name: robotconf
+            configMap:
+              name: sos-robot-conf
+              items:
+              - key: admin-robot.env.conf
+                path: admin-robot.conf.dev
           containers:
           - name: {{ident_label}}
-            image: {{image}}
+            image: {{registry}}/{{image}}
             command: ["sh", "-c", "{{{command}}}"]
             env:
             {{#env}}
             - name: {{key}}
               value: {{val}}
             {{/env}}
-          restartPolicy: Never
+            volumeMounts:
+            - name: localconfig
+              mountPath: "/www/sos/core/conf/app.local.conf"
+              subPath: "app.local.conf"
+            - name: robotpasswords
+              mountPath: "/www/sos/admin-robot/conf/admin-robot.passwd.conf"
+              subPath: "admin-robot.passwd.conf"
+            - name: robotconf
+              mountPath: "/www/sos/admin-robot/conf/admin-robot.conf.dev"
+              subPath: admin-robot.conf.dev
+            resources:
+              requests:
+                cpu: "0.5"
+                memory: 500Mi
+              limits:
+                cpu: 4
+                memory: 8000Mi

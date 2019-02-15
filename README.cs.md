@@ -2,18 +2,6 @@
 
 `Lů` je univerzální vyndavač do kubernetu, který umožňuje snadno pracovat v jednom projektu s více docker registry, docker repozitáři, kubernetes clustery a namespacy, aniž by bylo nutné duplikovat konfiguraci.
 
-`Lů` používá dvě úrovně konfigurace.
-
-"Globální" konfigurace je očekávána v souboru `vindaloo_conf.py` a definuje
-seznam prostředí, jím odpovídající k8s namespacy a seznam k8s clusterů.
-`vindaloo_conf.py` je možné umístit přímo do adresáře nasazované komponenty a
-nebo do jakéhokoliv nadřazeného adresáře, např. do domovské složky, pokud
-používáme pro všechny projekty stejné k8s prostředí (namespacy a clustery).
-
-Každý projekt/komponenta/služba pak obsahuje adresář `k8s`, který obsahuje konfiguraci
-pro build a nasazení této komponenty a z ní `Lů`  generuje jednotlivé deploymenty, Dockerfiles, atd.
-a ty pak předává `kubectl`.
-
 Požadavky
 ---------
 
@@ -58,6 +46,21 @@ Proč použít právě Lů a ne jiný nástroj
 - je téměř kompletně pokrytý testy
 - umí napovídat přepínače, prostředí i image použité v komponentě
 
+Konfigurace
+-----------
+
+`Lů` používá dvě úrovně konfigurace.
+
+"Globální" konfigurace je očekávána v souboru `vindaloo_conf.py` a definuje
+seznam prostředí, jím odpovídající k8s namespacy a seznam k8s clusterů.
+`vindaloo_conf.py` je možné umístit přímo do adresáře nasazované komponenty a
+nebo do jakéhokoliv nadřazeného adresáře, např. do domovské složky, pokud
+používáme pro všechny projekty stejné k8s prostředí (namespacy a clustery).
+
+Každý projekt/komponenta/služba pak obsahuje adresář `k8s`, který obsahuje konfiguraci
+pro build a nasazení této komponenty a z ní `Lů`  generuje jednotlivé deploymenty, Dockerfiles, atd.
+a ty pak předává `kubectl`.
+
 
 Typycké použití
 ---------------
@@ -81,36 +84,6 @@ Pro zprovoznění napovídání je potřeba přidat do `~/.bashrc`:
 
 ```
 source <(vindaloo completion)
-```
-
-Hilfe
------
-
-```
-usage: vindaloo [-h] [--debug] [--noninteractive] [--quiet] [--dryrun]
-                {init,build,pull,push,kubeenv,versions,kubelogin,deploy,build-push-deploy}
-                ...
-
-Nastroj pro usnadneni prace s dockerem a kubernetes
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --debug
-  --noninteractive      Na nic se nepta
-  --quiet               Potlaci vystup
-  --dryrun              Jen predstira, nedela zadne nevratne zmeny
-
-commands:
-  {init,build,pull,push,kubeenv,versions,kubelogin,deploy,build-push-deploy}
-    init                pripravi projekt pro praci s Vindaloo
-    build               ubali Docker image (vsechny)
-    pull                pullne docker image (vsechny)
-    push                pushne docker image (vsechny)
-    kubeenv             switchne aktualni kubernetes context v ENV
-    versions            vypise verze vsech imagu a srovna s clusterem
-    kubelogin           prihlasi se do kubernetu
-    deploy              nasadi zmeny do clusteru
-    build-push-deploy   udela vsechny tri kroky
 ```
 
 Konfigurace projektu
@@ -359,9 +332,21 @@ spec:
     app: {{app_name}}
 ```
 
-Ukázky složitější konfigurace:
-- [s builděním několika imagů](examples/multi-image/k8s)
-- [s generovanými CronJoby](examples/cron-jobs/k8s)
+Pokročilejší konfigurace
+------------------------
+
+Konfigurace zapsaná v Pythonu umožňuje snadno vyřešit i daleko složitější scénáře.
+
+Můžeme například z jedné komponenty buildit více imagů a ty poté nasazovat v jednom podu - [ukázka konfigurace](examples/multi-image/k8s).
+
+Můžeme také vytvořit soubor podobný crontabu a pomocí něj dynamicky generovat CronJoby.
+Navíc pokud bychom potřebovali spustit nějaký skript mimo běžné naplánování, můžeme např. předáním ENV proměnné nasadit jeden Job.
+
+```
+DEPLOY_JOB=campaign-run-manager vindaloo deploy dev
+```
+
+Více viz [ukázka s cronjoby](examples/cron-jobs/k8s).
 
 Jak `Lůa` ubuildit
 ------------------
