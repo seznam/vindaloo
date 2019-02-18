@@ -334,7 +334,7 @@ spec:
     app: {{app_name}}
 ```
 
-More advanced configuration
+Advanced configuration
 ---------------------------
 
 Configuration written in Python allows us to solve a far more complicated scenarios.
@@ -343,7 +343,7 @@ We can build more images from one component and the deploy them into one pod.
 See the [example](examples/multi-image/k8s).
 
 We can create python module similar to crontab and generate CronJobs dynamically using it.
-Then if we needed to run some task out of schedule, we can deploy one k8s Job by passing ENV variable for example.
+Then if we need to run some task out of schedule, we can deploy one k8s Job by passing ENV variable for example.
 
 ```
 DEPLOY_JOB=campaign-run-manager vindaloo deploy dev

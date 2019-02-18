@@ -48,8 +48,8 @@ for job in CRONS:
 
 CONFIG = {
     'maintainer': "Daniel Milde <daniel.milde@firma.seznam.cz>",
-    'version': versions['sos/robot'],
-    'image_name': 'sos/robot',
+    'version': versions['avengers/robot'],
+    'image_name': 'avengers/robot',
 }
 
 CRON_JOB = {
@@ -57,7 +57,7 @@ CRON_JOB = {
     'env': [
         {
             'key': 'PONY_ENVIRONMENT',
-            'val': "scif.sos-stable"
+            'val': "scif.avengers-stable"
         },
     ],
 }
