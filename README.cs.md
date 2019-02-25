@@ -31,6 +31,7 @@ Co to umí
 - Pushnout
 - deploynout do K8S
 - zkontrolovat verze v K8S
+- editovat secrety v K8S
 - přihlásit se do clusteru
 - napovídat v bashi
 

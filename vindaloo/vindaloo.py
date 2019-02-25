@@ -936,7 +936,7 @@ class Vindaloo:
         if self.args.command not in DO_NOT_NEED_CONFIG_FILE:
             if not self.envs_config_module:
                 self.fail("Config file {}.py not found in path".format(ENVS_CONFIG_NAME))
-            if not self._check_current_dir() and self.arg.commands not in DO_NOT_NEED_K8S_DIR:
+            if not self._check_current_dir() and self.args.command not in DO_NOT_NEED_K8S_DIR:
                 self.fail("Directory does not contain k8s subdirectory or Dockerfile is missing. Are we in module directory?")
 
         if self.args.command in NEEDS_K8S_LOGIN and not self._am_i_logged_in():
