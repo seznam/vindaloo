@@ -31,7 +31,7 @@ DO_NOT_NEED_K8S_DIR = ('edit-secret',)
 
 NONE = "base"
 K8S_OBJECT_TYPES = [
-    "podpreset", "deployment", "service", "ingres", "cronjob", "job"
+    "configmap", "secret", "podpreset", "deployment", "service", "ingres", "cronjob", "job"
 ]
 SUCCESS_REPLY = ("Y", "y", "a", "A")
 ENVS_CONFIG_NAME = 'vindaloo_conf'
@@ -188,11 +188,15 @@ class Vindaloo:
         for obj_type in K8S_OBJECT_TYPES:
             if obj_type not in self.config_module.K8S_OBJECTS:
                 continue  # Pokud tenhle typ nema tak jedeme dal
+            if obj_type == 'configmap':
+                self.deploy_configmaps(self.config_module.K8S_OBJECTS[obj_type])
+                continue
+
             for yaml_conf in self.config_module.K8S_OBJECTS[obj_type]:
                 # pridame registry
                 yaml_conf['config']['registry'] = self.registry
 
-                temp_file = self._create_file(yaml_conf['template'], yaml_conf['config'])
+                temp_file = self._create_file(yaml_conf['template'], yaml_conf['config'], from_templates=True)
 
                 if not temp_file:
                     self.fail("Error while creating deployment file.")
@@ -206,6 +210,38 @@ class Vindaloo:
                 if deployment_name:
                     self._out('Waiting for rollout {} to finish'.format(deployment_name))
                     self.cmd(["kubectl", "rollout", "status", "deployment", deployment_name])
+
+    def deploy_configmaps(self, configmaps):
+        """
+        For each configmap collects files and creates config map in k8s
+        """
+        for cm in configmaps:
+            name = cm['name']
+            files = [
+                (
+                    item['key'],
+                    self._create_file(item['file'], item.get('config', {}), from_templates=False, no_edit=True)
+                ) for item in cm['items']
+            ]
+            if files:
+
+                mapped = ["--from-file={}={}".format(x[0], x[1].name) for x in files]
+                self._out('Creating config map {}...'.format(name))
+                res = self.cmd(["kubectl", "create", "configmap", name, *mapped, "-o", "yaml", "--dry-run"], get_stdout=True)
+                assert res.returncode == 0
+
+                config_map_file = tempfile.NamedTemporaryFile("wb")
+                config_map_file.write(res.stdout)
+                config_map_file.seek(0)
+
+                # Optionally offers edit
+                if not self.args.noninteractive:
+                    res = input("File {}.yaml was created. Do you want to modify it? [n]:".format(name))
+                    if res in ("a", "y", "A", "Y"):
+                        self.open_in_editor(config_map_file)
+
+                res = self.cmd(["kubectl", "apply", "-f", config_map_file.name])
+                assert res.returncode == 0
 
     def _import_envs_config(self) -> None:
         """
@@ -554,12 +590,24 @@ class Vindaloo:
             assert self._cmd_check(["kubectl", "config", "use-context", context])
             self._out("Environment changed to {} ({})".format(env, context))
 
-    def _create_file(self, template_file_name: str, conf: Dict, force_dest_file: str = None) -> BinaryIO:
+    def _create_file(
+            self,
+            template_file_name: str,
+            conf: Dict,
+            force_dest_file: str = None,
+            from_templates: bool=False,
+            no_edit=False
+    ) -> BinaryIO:
         """
         Creates Dockerfile/yaml file using given template and config dict.
         """
         data = ""
-        with open("{}/templates/{}".format(CONFIG_DIR, template_file_name), "r") as template_file:
+        if from_templates:
+            src_file = "{}/templates/{}".format(CONFIG_DIR, template_file_name)
+        else:
+            src_file = "{}/{}".format(CONFIG_DIR, template_file_name)
+
+        with open(src_file, "r") as template_file:
             renderer = pystache.Renderer()
             # Parse the tamplate
             template = pystache.parse(template_file.read())
@@ -575,16 +623,16 @@ class Vindaloo:
         temp_file.seek(0)
 
         # Optionally offers edit
-        if not self.args.noninteractive:
+        if not self.args.noninteractive and not no_edit:
             res = input("File {} was created. Do you want to modify it? [n]:".format(template_file_name))
             if res in ("a", "y", "A", "Y"):
-                editor = os.getenv('EDITOR', 'vi')
-                spc = subprocess.call('{} {}'.format(editor, temp_file.name), shell=True)
-
-                if spc == 0:
-                    return temp_file
+                self.open_in_editor(temp_file)
 
         return temp_file
+
+    def open_in_editor(self, temp_file: Any) -> None:
+            editor = os.getenv('EDITOR', 'vi')
+            subprocess.call('{} {}'.format(editor, temp_file.name), shell=True)
 
     def _get_enriched_config_context(self, conf: Dict) -> Dict:
         """
@@ -616,7 +664,7 @@ class Vindaloo:
         # config with includes
         tmp_config = self._get_enriched_config_context(conf)
 
-        self._create_file(conf['template'], tmp_config, force_dest_file="Dockerfile")
+        self._create_file(conf['template'], tmp_config, force_dest_file="Dockerfile", from_templates=True)
 
     def _check_version(self):
         try:
@@ -813,6 +861,9 @@ class Vindaloo:
 
     def main(self) -> None:
         self._import_envs_config()
+        clusters = list(self.envs_config_module.K8S_CLUSTERS.keys())
+        clusters_str = ",".join(clusters)
+        default_cluster = clusters[0] if clusters else ''
 
         parser = argparse.ArgumentParser(description=self.__class__.__doc__)
         parser.add_argument('--debug', action='store_true')
@@ -850,9 +901,9 @@ class Vindaloo:
             choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple(),
         )
         kubeenv_parser.add_argument(
-            'cluster', help='name of cluster (ko/ng)',  # TODO make more general...
+            'cluster', help='name of cluster ({})'.format(clusters_str),
             choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
-            default='ko', nargs='?'
+            default=default_cluster, nargs='?'
         )
 
         versions_parser = subparsers.add_parser('versions', help='list all images and compares to the cluster')
@@ -866,9 +917,9 @@ class Vindaloo:
         login_parser = subparsers.add_parser('kubelogin', help='logs into kubernetes')
         login_parser.add_argument(
             'cluster',
-            help='cluster name (ko/ng)',  # TODO make more general...
+            help='cluster name ({})'.format(clusters_str),
             choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
-            default='ko', nargs='?'
+            default=default_cluster, nargs='?'
         )
 
         deploy_parser = subparsers.add_parser('deploy', help='nasadi zmeny do clusteru')
@@ -881,9 +932,9 @@ class Vindaloo:
             choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple()
         )
         deploy_parser.add_argument(
-            'cluster', help='cluster name (ko/ng)',  # TODO make more general...
+            'cluster', help='cluster name ({})'.format(clusters_str),
             choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
-            default='ko', nargs='?'
+            default=default_cluster, nargs='?'
         )
 
         bpd_parser = subparsers.add_parser('build-push-deploy', help='makes all three steps in one')
@@ -892,9 +943,9 @@ class Vindaloo:
             choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple()
         )
         bpd_parser.add_argument(
-            'cluster', help='cluster name (ko/ng)',  # TODO make more general...
+            'cluster', help='cluster name ({})'.format(clusters_str),
             choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
-            default='ko', nargs='?'
+            default=default_cluster, nargs='?'
         )
         bpd_parser.add_argument(
             'image', help='image we want to build/push', nargs='?', action='append'
@@ -915,9 +966,9 @@ class Vindaloo:
             nargs='?'
         )
         edit_parser.add_argument(
-            'cluster', help='cluster name (ko/ng)',  # TODO make more general...
+            'cluster', help='cluster name ({})'.format(clusters_str),
             choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
-            default='ko', nargs='?'
+            default=default_cluster, nargs='?'
         )
 
         subparsers.add_parser('completion', help='list commands for bash completion')
