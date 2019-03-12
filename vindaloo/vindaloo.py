@@ -236,9 +236,8 @@ class Vindaloo:
 
                 # Optionally offers edit
                 if not self.args.noninteractive:
-                    res = input("File {}.yaml was created. Do you want to modify it? [n]:".format(name))
-                    if res in ("a", "y", "A", "Y"):
-                        self.open_in_editor(config_map_file)
+                    if self._confirm("File {} was created. Do you want to modify it?".format(name), default="n"):
+                        self._open_in_editor(config_map_file)
 
                 res = self.cmd(["kubectl", "apply", "-f", config_map_file.name])
                 assert res.returncode == 0
@@ -624,13 +623,12 @@ class Vindaloo:
 
         # Optionally offers edit
         if not self.args.noninteractive and not no_edit:
-            res = input("File {} was created. Do you want to modify it? [n]:".format(template_file_name))
-            if res in ("a", "y", "A", "Y"):
-                self.open_in_editor(temp_file)
+            if self._confirm("File {} was created. Do you want to modify it?".format(template_file_name), default="n"):
+                self._open_in_editor(temp_file)
 
         return temp_file
 
-    def open_in_editor(self, temp_file: Any) -> None:
+    def _open_in_editor(self, temp_file: Any) -> None:
             editor = os.getenv('EDITOR', 'vi')
             subprocess.call('{} {}'.format(editor, temp_file.name), shell=True)
 
