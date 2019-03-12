@@ -5,7 +5,7 @@ from utils import chdir
 
 def test_deploy(loo):
     # fake arguments
-    sys.argv = ['vindaloo', '--noninteractive', 'deploy', 'dev']
+    sys.argv = ['vindaloo', '--noninteractive', 'deploy', 'dev', 'ko']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = [
         'doc.ker.dev.dszn.cz/test/foo:1.0.0',
@@ -81,7 +81,7 @@ def test_deploy_one_cluster(loo):
 
 def test_deploy_watch(loo):
     # fake arguments
-    sys.argv = ['vindaloo', '--noninteractive', 'deploy', '--watch', 'dev']
+    sys.argv = ['vindaloo', '--noninteractive', 'deploy', '--watch', 'dev', 'ko']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = [
         'doc.ker.dev.dszn.cz/test/foo:1.0.0',
