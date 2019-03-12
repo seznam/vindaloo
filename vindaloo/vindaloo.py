@@ -859,7 +859,7 @@ class Vindaloo:
 
     def main(self) -> None:
         self._import_envs_config()
-        clusters = list(self.envs_config_module.K8S_CLUSTERS.keys())
+        clusters = list(self.envs_config_module.K8S_CLUSTERS.keys()) if self.envs_config_module else []
         clusters_str = ",".join(clusters)
         default_cluster = clusters[0] if clusters else ''
 
