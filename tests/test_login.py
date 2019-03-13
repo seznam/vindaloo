@@ -3,23 +3,12 @@ import sys
 from utils import chdir
 
 
-def test_login_ko(loo):
-    # fake arguments
-    sys.argv = ['vindaloo', 'kubelogin', 'ko']
-
-    with chdir('tests'):
-        loo.main()
-
-    assert loo.cmd.call_args[0][0][0] == 'bash'
-    assert loo.cmd.call_args[0][0][2] == 'ko'
-
-
 def test_login_ng(loo):
     # fake arguments
-    sys.argv = ['vindaloo', 'kubelogin', 'ng']
+    sys.argv = ['vindaloo', 'kubelogin']
 
     with chdir('tests'):
         loo.main()
 
     assert loo.cmd.call_args[0][0][0] == 'bash'
-    assert loo.cmd.call_args[0][0][2] == 'ng'
+    assert loo.cmd.call_args[0][0][1].endswith("kube-dex-login.sh")

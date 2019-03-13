@@ -72,8 +72,7 @@ class Vindaloo:
         Runs k8s login script.
         """
         filename = pkg_resources.resource_filename(__name__, 'data/kube-dex-login.sh')
-        locality = self.args.cluster
-        spc = self.cmd(['bash', filename, locality])
+        spc = self.cmd(['bash', filename])
         assert spc.returncode == 0
 
     def _confirm(self, message: str, default: str = "y") -> bool:
@@ -912,13 +911,7 @@ class Vindaloo:
             nargs='?'
         )
 
-        login_parser = subparsers.add_parser('kubelogin', help='logs into kubernetes')
-        login_parser.add_argument(
-            'cluster',
-            help='cluster name ({})'.format(clusters_str),
-            choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
-            default=default_cluster, nargs='?'
-        )
+        subparsers.add_parser('kubelogin', help='logs into kubernetes')
 
         deploy_parser = subparsers.add_parser('deploy', help='nasadi zmeny do clusteru')
         deploy_parser.add_argument(
