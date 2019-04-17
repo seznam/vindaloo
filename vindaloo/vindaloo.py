@@ -39,7 +39,7 @@ NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy', 'edit-secret')
 CONFIG_DIR = 'k8s'
 CHECK_VERSION_URL = 'https://vindaloo.dev.dszn.cz/version.json'
 
-VERSION = '1.14.1'
+VERSION = '1.15.0'
 
 
 class RefreshException(Exception):
@@ -204,7 +204,7 @@ class Vindaloo:
                 assert res.returncode == 0
 
         if self.args.watch:
-            for yaml_conf in self.config_module.K8S_OBJECTS['deployment']:
+            for yaml_conf in self.config_module.K8S_OBJECTS.get('deployment', []):
                 deployment_name = yaml_conf.get('config', {}).get('ident_label', '')
                 if deployment_name:
                     self._out('Waiting for rollout {} to finish'.format(deployment_name))
@@ -577,7 +577,7 @@ class Vindaloo:
             if not self._confirm("K8s context is not set {}. Should I create it?".format(context)):
                 self._out('Deploy action terminated')
                 sys.exit(0)
-            username = self._input_text("Insert domain name: ")
+            username = self._input_text("Insert username: ")
             assert self._cmd_check([
                 "kubectl", "config", "set-context", context, "--cluster={}".format(
                     self.envs_config_module.K8S_CLUSTERS[cluster]

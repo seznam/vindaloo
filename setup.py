@@ -1,7 +1,7 @@
 from setuptools import setup
 setup(
     name='szn-vindaloo',
-    version='1.14.1',
+    version='1.15.0',
     description='K8S deployer',
     author='Daniel Milde',
     author_email='daniel.milde@firma.seznam.cz',
