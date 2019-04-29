@@ -6,4 +6,6 @@ htmlcov
 .coverage
 .mypy_cache
 .idea
+.vscode
+szn_vindaloo.egg-info
 tests/Dockerfile

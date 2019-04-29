@@ -39,7 +39,7 @@ NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy', 'edit-secret')
 CONFIG_DIR = 'k8s'
 CHECK_VERSION_URL = 'https://vindaloo.dev.dszn.cz/version.json'
 
-VERSION = '1.15.1'
+VERSION = '1.16.0'
 
 
 class RefreshException(Exception):
@@ -511,7 +511,7 @@ class Vindaloo:
                         remote_images = self.get_k8s_deployment_version(module_name)
                         if not remote_images:
                             continue
-                        images = {}
+                        images = remote_versions.get(env, {}).get(cluster, {})
                         for remote_image in remote_images:
                             parts = remote_image.split(":")
                             version = parts[-1]
@@ -539,6 +539,9 @@ class Vindaloo:
                     summary.setdefault(env, {}).setdefault(
                         image, {'local': None, 'remote': {}}
                     )["remote"][cluster] = remote_[env][cluster][image]
+
+        if self.args.json:
+            print(json.dumps(summary, indent=1))
 
         self._out("\nImage and version for defined environments")
         for env in summary:
@@ -573,7 +576,7 @@ class Vindaloo:
         """
         context = '{}-{}'.format(self.envs_config_module.K8S_NAMESPACES[env], cluster)
 
-        if not self._cmd_check(["kubectl", "config", "use-context", context]):
+        if not self._cmd_check(["kubectl", "config", "use-context", context], self.args.quiet):
             if not self._confirm("K8s context is not set {}. Should I create it?".format(context)):
                 self._out('Deploy action terminated')
                 sys.exit(0)
@@ -585,7 +588,7 @@ class Vindaloo:
                 "--namespace={}".format(
                     self.envs_config_module.K8S_NAMESPACES[env]
                 ), "--user={}-{}".format(username, cluster)])
-            assert self._cmd_check(["kubectl", "config", "use-context", context])
+            assert self._cmd_check(["kubectl", "config", "use-context", context], self.args.quiet)
             self._out("Environment changed to {} ({})".format(env, context))
 
     def _create_file(
@@ -904,6 +907,7 @@ class Vindaloo:
         )
 
         versions_parser = subparsers.add_parser('versions', help='list all images and compares to the cluster')
+        versions_parser.add_argument('--json', help='output as json', action='store_true')
         versions_parser.add_argument(
             'environment',
             help='env for which we want comparison',
@@ -969,6 +973,9 @@ class Vindaloo:
         self.args, _ = parser.parse_known_args()
         if not self.args.command:
             parser.print_help()
+
+        if getattr(self.args, 'json', None):
+            self.args.quiet = True
 
         self.config_module = self._import_config(NONE)
 

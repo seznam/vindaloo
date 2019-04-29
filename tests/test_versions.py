@@ -1,3 +1,4 @@
+import json
 import sys
 from unittest import mock
 
@@ -131,3 +132,42 @@ def test_versions_not_match(capsys):
     assert '[DIFFERS]' in output
     assert 'test/foo' in output
     assert 'test/bar' in output
+
+
+def test_versions_json(capsys):
+    # fake arguments
+    sys.argv = ['vindaloo', 'versions', '--json']
+
+    def x(*args, **kwargs):
+        print(args, kwargs)
+        z = mock.Mock()
+        z.returncode = 0
+        return z
+
+    calls = [mock.Mock() for _ in range(5)]
+    for call in calls:
+        call.returncode = 0
+    calls[2].stdout = b'doc.ker.dev.dszn.cz/test/foo:1.0.0 doc.ker.dev.dszn.cz/test/bar:2.0.0'  # ko
+    calls[4].stdout = b'doc.ker.dev.dszn.cz/test/foo:0.0.9 doc.ker.dev.dszn.cz/test/bar:2.0.0'  # ng DIFFERS
+
+    loo = Vindaloo()
+    loo.cmd = mock.Mock()
+    loo.cmd.side_effect = calls
+
+    with chdir('tests'):
+        loo.main()
+
+    # check the arguments kubectl was called with
+    assert len(loo.cmd.call_args_list) == 5
+
+    output = capsys.readouterr().out.strip()
+    data = json.loads(output)
+    assert data
+    assert data['dev']['test/foo']['local'] == '1.0.0'
+    assert data['dev']['test/bar']['local'] == '2.0.0'
+
+    assert data['dev']['test/bar']['remote']['ko'] == '2.0.0'
+
+    # py 3.5 nema pevne razeni dictu a tak nevime, jestli provede prvni ko nebo ng
+    assert data['dev']['test/foo']['remote']['ko'] in ('1.0.0', '0.0.9')
+    assert data['dev']['test/foo']['remote']['ng'] in ('1.0.0', '0.0.9')
