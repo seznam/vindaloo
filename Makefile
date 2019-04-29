@@ -21,7 +21,7 @@ clean:
 	sudo find . -name '*.pyc' -exec rm -rf {} +;
 
 install-dev:
-	pip install argcomplete>=1.9.5 pex pystache typing
+	pip install argcomplete pex pystache typing
 
 test-all: clean 3.7-alpine 3.6-alpine 3.5-alpine
 
@@ -29,6 +29,6 @@ upload:
 	python setup.py sdist upload -r sznpypi
 
 %-alpine:
-	docker run --rm -v $(PWD):/x python:$@ sh -c "pip install argcomplete>=1.9.5 pytest pystache typing; cd /x; pytest tests"
+	docker run --rm -v $(PWD):/x python:$@ sh -c "pip install argcomplete pytest pystache typing; cd /x; pytest tests"
 
 .PHONY: all cache pex-local pex-in-docker test coverage clean test-all upload
