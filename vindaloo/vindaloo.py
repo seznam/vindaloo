@@ -3,6 +3,7 @@
 import argparse
 import base64
 import imp
+import shutil
 from importlib import import_module
 import json
 import os
@@ -11,7 +12,7 @@ import ssl
 import subprocess
 import sys
 import tempfile
-from typing import Any, Dict, List, Set, BinaryIO, Tuple
+from typing import Any, Dict, List, Set, BinaryIO, Sequence
 import urllib.request
 
 import argcomplete
@@ -177,11 +178,13 @@ class Vindaloo:
         if dep_env not in self.envs_config_module.LOCAL_ENVS:
             self.fail("Unknown environment '{}'.".format(dep_env))
 
-        if not self._import_config(dep_env):
+        self.config_module = self._import_config(dep_env)
+        if not self.config_module:
             self.fail("Environment '{}' does not have configuration.")
 
         # prepneme se
-        self._select_k8s_context(dep_env, self.args.cluster)
+        if not self.args.apply_output_dir:
+            self._select_k8s_context(dep_env, self.args.cluster)
 
         # pro jednotlive typy souboru vygenerujeme yaml soubory a nasadime je
         for obj_type in K8S_OBJECT_TYPES:
@@ -200,8 +203,9 @@ class Vindaloo:
                 if not temp_file:
                     self.fail("Error while creating deployment file.")
 
-                res = self.cmd(["kubectl", "apply", "-f", temp_file.name])
-                assert res.returncode == 0
+                assert self.kubectl_apply(
+                    temp_file.name, name=yaml_conf['config'].get('ident_label', 'unnamed'), object_type=obj_type
+                )
 
         if self.args.watch:
             for yaml_conf in self.config_module.K8S_OBJECTS.get('deployment', []):
@@ -209,6 +213,26 @@ class Vindaloo:
                 if deployment_name:
                     self._out('Waiting for rollout {} to finish'.format(deployment_name))
                     self.cmd(["kubectl", "rollout", "status", "deployment", deployment_name])
+
+    def kubectl_apply(self, filename: str, name: str = 'unnamed', object_type: str = 'k8s_object') -> bool:
+        """
+        Apply k8s yaml or save into output dir, when specified on command line.
+        """
+        if self.args.dryrun:
+            self._out("pretending to apply {}".format(filename))
+            return True
+        elif self.args.apply_output_dir:
+            os.makedirs(self.args.apply_output_dir, exist_ok=True)
+            dest_filename = os.path.join(
+                self.args.apply_output_dir,
+                "{}_{}.yaml".format(object_type, name)
+            )
+            shutil.copy(filename, dest_filename)
+            self._out("{} created.".format(dest_filename))
+            return True
+        else:
+            res = self.cmd(["kubectl", "apply", "-f", filename])
+            return res.returncode == 0
 
     def deploy_configmaps(self, configmaps):
         """
@@ -238,19 +262,17 @@ class Vindaloo:
                     if self._confirm("File {} was created. Do you want to modify it?".format(name), default="n"):
                         self._open_in_editor(config_map_file)
 
-                res = self.cmd(["kubectl", "apply", "-f", config_map_file.name])
-                assert res.returncode == 0
+                assert self.kubectl_apply(config_map_file.name, name=name, object_type='configmap')
 
     def _import_envs_config(self) -> None:
         """
         Reads main configuration containing list of clusters and namespaces.
         """
-        dir = os.path.abspath(os.path.curdir)
+        dir = os.path.abspath(os.getcwd())
 
         while dir != '/':
             module = os.path.join(dir, ENVS_CONFIG_NAME)
             path = '{}.py'.format(module)
-
             if os.path.isfile(path):
                 self.envs_config_module = imp.load_source(module, path)
                 break
@@ -268,10 +290,13 @@ class Vindaloo:
 
         versions = json.load(open('{}/versions.json'.format(CONFIG_DIR)))
         sys.modules['versions'] = versions
-        sys.path.insert(0, CONFIG_DIR)
-
+        sys.path.insert(0, os.path.abspath(CONFIG_DIR))
         try:
-            return import_module(env)
+            # If there is already, remove from modules and import again
+            if env in sys.modules:
+                del sys.modules[env]
+            res_mod = import_module(env)
+            return res_mod
         except ModuleNotFoundError:
             return None
         finally:
@@ -630,9 +655,10 @@ class Vindaloo:
 
         return temp_file
 
-    def _open_in_editor(self, temp_file: Any) -> None:
-            editor = os.getenv('EDITOR', 'vi')
-            subprocess.call('{} {}'.format(editor, temp_file.name), shell=True)
+    @staticmethod
+    def _open_in_editor(temp_file: Any) -> None:
+        editor = os.getenv('EDITOR', 'vi')
+        subprocess.call('{} {}'.format(editor, temp_file.name), shell=True)
 
     def _get_enriched_config_context(self, conf: Dict) -> Dict:
         """
@@ -696,7 +722,8 @@ class Vindaloo:
         while self._select_secret(secrets):
             pass
 
-    def _parse_secrets(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    @staticmethod
+    def _parse_secrets(data: Dict[str, Any]) -> List[Dict[str, Any]]:
         items = data.get("items", [])
         return [
             dict(
@@ -715,7 +742,7 @@ class Vindaloo:
             self._out("No secrets found.")
             return False
 
-        options = [(str(idx+1), i["name"]) for idx, i in enumerate(secrets)] + [("x", "exit"),]
+        options = [(str(idx+1), i["name"]) for idx, i in enumerate(secrets)] + [("x", "exit")]
         for i in options:
             self._out("{}) {}".format(i[0], i[1]))
         self._out("")
@@ -774,14 +801,16 @@ class Vindaloo:
 
         return True
 
-    def _select(self, question: str, options: Tuple[str, str]) -> str:
+    @staticmethod
+    def _select(question: str, options: Sequence[Sequence[str]]) -> str:
         res = None
         while res not in [x[0] for x in options]:
             res = input(question)
 
         return res
 
-    def _edit_value(self, val: bytes) -> bytes:
+    @staticmethod
+    def _edit_value(val: bytes) -> bytes:
         file_, path_ = tempfile.mkstemp()
         try:
             os.write(file_, val)
@@ -931,6 +960,11 @@ class Vindaloo:
             choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
             default=default_cluster, nargs='?'
         )
+        deploy_parser.add_argument(
+            '--apply-output-dir',
+            help="Instead of apply save generated yaml files to specified directory",
+            default=None
+        )
 
         bpd_parser = subparsers.add_parser('build-push-deploy', help='makes all three steps in one')
         bpd_parser.add_argument(
@@ -951,6 +985,11 @@ class Vindaloo:
         bpd_parser.add_argument(
             '--watch', help='Wait for the new version to rollout',
             action='store_true'
+        )
+        bpd_parser.add_argument(
+            '--apply-output-dir',
+            help="Instead of apply save generated yaml files to specified directory",
+            default=None
         )
 
         edit_parser = subparsers.add_parser('edit-secret', help='Edit secret in k8s namespace')

@@ -9,7 +9,7 @@ def test_pull_all(loo):
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = []
 
-    with chdir('tests'):
+    with chdir('tests/test_roots/simple'):
         loo.main()
 
     # check the arguments docker was called with
@@ -34,7 +34,7 @@ def test_pull_one(loo):
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = []
 
-    with chdir('tests'):
+    with chdir('tests/test_roots/simple'):
         loo.main()
 
     # check the arguments docker was called with
@@ -53,7 +53,7 @@ def test_pull_already_present(loo):
         'doc.ker.dev.dszn.cz/test/foo:1.0.0',
     ]
 
-    with chdir('tests'):
+    with chdir('tests/test_roots/simple'):
         loo.main()
 
     # check the arguments docker was called with

@@ -13,7 +13,7 @@ ALL_CMDS_STRING = 'build,pull,push,kubeenv,versions,kubelogin,deploy,build-push-
 def test_help(mock_sys_exit, capsys):
     sys.argv = ['vindaloo', '-h']
 
-    with chdir('tests'):
+    with chdir('tests/test_roots/simple'):
         Vindaloo().main()
 
     captured = capsys.readouterr()
@@ -30,7 +30,7 @@ def test_help_build(mock_sys_exit, capsys):
 
     mock_sys_exit.side_effect = Exception()
 
-    with chdir('tests'):
+    with chdir('tests/test_roots/simple'):
         with pytest.raises(Exception):
             Vindaloo().main()
 

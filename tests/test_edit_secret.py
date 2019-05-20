@@ -43,14 +43,14 @@ TEST_JSON = """{
 
 
 def test_parse_secrets(loo):
-    with chdir('tests'):
+    with chdir('tests/test_roots/simple'):
         res = loo._parse_secrets(json.loads(TEST_JSON))
         assert len(res) == 2
 
 
 def test_commit_secret_values(loo):
 
-    with chdir('tests'):
+    with chdir('tests/test_roots/simple'):
         loo.changed_secrets = {"a": b"b"}
         with pytest.raises(RefreshException):
             loo._commit_secret_values({"name": "XXX"})

@@ -7,7 +7,7 @@ def test_login_ng(loo):
     # fake arguments
     sys.argv = ['vindaloo', 'kubelogin']
 
-    with chdir('tests'):
+    with chdir('tests/test_roots/simple'):
         loo.main()
 
     assert loo.cmd.call_args[0][0][0] == 'bash'

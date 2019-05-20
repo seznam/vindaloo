@@ -20,7 +20,7 @@ def test_versions_match(capsys):
     loo.cmd = mock.Mock()
     loo.cmd.side_effect = calls
 
-    with chdir('tests'):
+    with chdir('tests/test_roots/simple'):
         loo.main()
 
     # check the arguments kubectl was called with
@@ -87,7 +87,7 @@ def test_versions_not_match(capsys):
     loo.cmd = mock.Mock()
     loo.cmd.side_effect = calls
 
-    with chdir('tests'):
+    with chdir('tests/test_roots/simple'):
         loo.main()
 
     # check the arguments kubectl was called with
@@ -154,7 +154,7 @@ def test_versions_json(capsys):
     loo.cmd = mock.Mock()
     loo.cmd.side_effect = calls
 
-    with chdir('tests'):
+    with chdir('tests/test_roots/simple'):
         loo.main()
 
     # check the arguments kubectl was called with

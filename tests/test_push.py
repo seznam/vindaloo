@@ -12,7 +12,7 @@ def test_push_all(loo):
         'doc.ker.dev.dszn.cz/test/bar:2.0.0',
     ]
 
-    with chdir('tests'):
+    with chdir('tests/test_roots/simple'):
         loo.main()
 
     # check the arguments docker was called with
@@ -39,7 +39,7 @@ def test_push_one(loo):
         'doc.ker.dev.dszn.cz/test/bar:2.0.0',
     ]
 
-    with chdir('tests'):
+    with chdir('tests/test_roots/simple'):
         loo.main()
 
     # check the arguments docker was called with
@@ -59,7 +59,7 @@ def test_push_not_built_image(loo):
         'doc.ker.dev.dszn.cz/test/bar:2.0.0',
     ]
 
-    with chdir('tests'):
+    with chdir('tests/test_roots/simple'):
         loo.main()
 
     # check the arguments docker was called with
@@ -77,7 +77,7 @@ def test_push_latest(loo):
         'doc.ker.dev.dszn.cz/test/bar:2.0.0',
     ]
 
-    with chdir('tests'):
+    with chdir('tests/test_roots/simple'):
         loo.main()
 
     # check the arguments docker was called with
@@ -105,7 +105,7 @@ def test_push_with_registry(loo):
         'doc.ker.dev.dszn.cz/test/bar:2.0.0',
     ]
 
-    with chdir('tests'):
+    with chdir('tests/test_roots/simple'):
         loo.main()
 
     # check the arguments docker was called with

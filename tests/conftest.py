@@ -1,5 +1,7 @@
+import shutil
 import sys
 import os
+import uuid
 from unittest import mock
 
 import pytest
@@ -25,3 +27,11 @@ def loo():
     loo.cmd.return_value.returncode = 0
     loo._check_version = mock.Mock()
     return loo
+
+
+@pytest.yield_fixture(scope='function')
+def test_temp_dir():
+    tmpdir_name = "/tmp/{}_test_output".format(uuid.uuid4().hex)
+    os.makedirs(tmpdir_name)
+    yield tmpdir_name
+    shutil.rmtree(tmpdir_name)
