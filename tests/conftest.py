@@ -32,5 +32,5 @@ def loo():
 
 @pytest.yield_fixture(scope='function')
 def test_temp_dir():
-    with tempfile.TemporaryDirectory() as tempdir:
-        yield tempdir.name
+    with tempfile.TemporaryDirectory() as name:
+        yield name
