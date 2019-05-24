@@ -219,7 +219,7 @@ class Vindaloo:
         Apply k8s yaml or save into output dir, when specified on command line.
         """
         if self.args.dryrun:
-            self._out("pretending to apply {}".format(filename))
+            self._out("CALL: kubectl apply -f {}".format(filename))
             return True
         elif self.args.apply_output_dir:
             os.makedirs(self.args.apply_output_dir, exist_ok=True)
@@ -888,8 +888,8 @@ class Vindaloo:
             images.append(self._strip_image_name(image_name))
         return images
 
-    def main(self) -> None:
-        self._import_envs_config()
+    def get_arg_parser(self) -> argparse.ArgumentParser:
+
         clusters = list(self.envs_config_module.K8S_CLUSTERS.keys()) if self.envs_config_module else []
         clusters_str = ",".join(clusters)
         default_cluster = clusters[0] if clusters else ''
@@ -1009,6 +1009,17 @@ class Vindaloo:
 
         argcomplete.autocomplete(parser)
 
+        return parser
+
+    def main(self) -> None:
+        self._import_envs_config()
+
+        if len(sys.argv) > 1 and sys.argv[1] not in DO_NOT_NEED_CONFIG_FILE:
+            if not self.envs_config_module:
+                self.fail("Config file {}.py not found in path".format(ENVS_CONFIG_NAME))
+
+        parser = self.get_arg_parser()
+
         self.args, _ = parser.parse_known_args()
         if not self.args.command:
             parser.print_help()
@@ -1022,8 +1033,6 @@ class Vindaloo:
             self._check_version()
 
         if self.args.command not in DO_NOT_NEED_CONFIG_FILE:
-            if not self.envs_config_module:
-                self.fail("Config file {}.py not found in path".format(ENVS_CONFIG_NAME))
             if not self._check_current_dir() and self.args.command not in DO_NOT_NEED_K8S_DIR:
                 self.fail("Directory does not contain k8s subdirectory or Dockerfile is missing. Are we in module directory?")
 

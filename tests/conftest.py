@@ -1,6 +1,7 @@
 import shutil
 import sys
 import os
+import tempfile
 import uuid
 from unittest import mock
 
@@ -31,7 +32,5 @@ def loo():
 
 @pytest.yield_fixture(scope='function')
 def test_temp_dir():
-    tmpdir_name = "/tmp/{}_test_output".format(uuid.uuid4().hex)
-    os.makedirs(tmpdir_name)
-    yield tmpdir_name
-    shutil.rmtree(tmpdir_name)
+    with tempfile.TemporaryDirectory() as tempdir:
+        yield tempdir.name
