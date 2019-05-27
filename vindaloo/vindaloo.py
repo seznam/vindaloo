@@ -225,7 +225,7 @@ class Vindaloo:
             os.makedirs(self.args.apply_output_dir, exist_ok=True)
             dest_filename = os.path.join(
                 self.args.apply_output_dir,
-                "{}_{}.yaml".format(object_type, name)
+                "{}_{}.yaml".format(name, object_type)
             )
             shutil.copy(filename, dest_filename)
             self._out("{} created.".format(dest_filename))

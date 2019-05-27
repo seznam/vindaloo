@@ -199,4 +199,4 @@ def test_deploy_to_outdir(loo, test_temp_dir):
         'test-config-map',
     ]
 
-    assert os.path.isfile(os.path.join(test_temp_dir, "configmap_test-config-map.yaml"))
+    assert os.path.isfile(os.path.join(test_temp_dir, "test-config-map_configmap.yaml"))
