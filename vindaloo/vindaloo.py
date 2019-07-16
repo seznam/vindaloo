@@ -26,6 +26,7 @@ from .examples import (
     EXAMPLE_DEPLOYMENT,
     EXAMPLE_SERVICE,
 )
+from .objects import JsonSerializable
 
 DO_NOT_NEED_CONFIG_FILE = ('init', 'completion')
 DO_NOT_NEED_K8S_DIR = ('edit-secret',)
@@ -40,7 +41,7 @@ NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy', 'edit-secret')
 CONFIG_DIR = 'k8s'
 CHECK_VERSION_URL = 'https://vindaloo.dev.dszn.cz/version.json'
 
-VERSION = '1.17.0'
+VERSION = '2.0.0'
 
 
 class RefreshException(Exception):
@@ -195,16 +196,21 @@ class Vindaloo:
                 continue
 
             for yaml_conf in self.config_module.K8S_OBJECTS[obj_type]:
-                # pridame registry
-                yaml_conf['config']['registry'] = self.registry
+                if isinstance(yaml_conf, JsonSerializable):
+                    temp_file = self._create_json_file_from_object(yaml_conf)
+                    ident = yaml_conf.name
+                else:
+                    # pridame registry
+                    yaml_conf['config']['registry'] = self.registry
 
-                temp_file = self._create_file(yaml_conf['template'], yaml_conf['config'], from_templates=True)
+                    temp_file = self._create_file(yaml_conf['template'], yaml_conf['config'], from_templates=True)
+                    ident = yaml_conf['config'].get('ident_label', 'unnamed')
 
                 if not temp_file:
                     self.fail("Error while creating deployment file.")
 
                 assert self.kubectl_apply(
-                    temp_file.name, name=yaml_conf['config'].get('ident_label', 'unnamed'), object_type=obj_type
+                    temp_file.name, name=ident, object_type=obj_type
                 )
 
         if self.args.watch:
@@ -652,6 +658,30 @@ class Vindaloo:
         # Optionally offers edit
         if not self.args.noninteractive and not no_edit:
             if self._confirm("File {} was created. Do you want to modify it?".format(template_file_name), default="n"):
+                self._open_in_editor(temp_file)
+
+        return temp_file
+
+    def _create_json_file_from_object(
+            self,
+            obj: JsonSerializable,
+            force_dest_file: str = None,
+            no_edit=False
+    ) -> BinaryIO:
+        """
+        Creates JSON file using given object.
+        """
+        if force_dest_file:
+            temp_file = open(force_dest_file, "wb")
+        else:
+            temp_file = tempfile.NamedTemporaryFile("wb")
+
+        temp_file.write(bytes(obj.to_json(self), 'utf-8'))
+        temp_file.seek(0)
+
+        # Optionally offers edit
+        if not self.args.noninteractive and not no_edit:
+            if self._confirm("File {}-{}.json was created. Do you want to modify it?".format(obj.name, obj.obj_type), default="n"):
                 self._open_in_editor(temp_file)
 
         return temp_file
