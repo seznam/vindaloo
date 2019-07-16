@@ -40,7 +40,7 @@ NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy', 'edit-secret')
 CONFIG_DIR = 'k8s'
 CHECK_VERSION_URL = 'https://vindaloo.dev.dszn.cz/version.json'
 
-VERSION = '1.16.1'
+VERSION = '1.17.0'
 
 
 class RefreshException(Exception):
@@ -290,6 +290,7 @@ class Vindaloo:
 
         versions = json.load(open('{}/versions.json'.format(CONFIG_DIR)))
         sys.modules['versions'] = versions
+        sys.modules['vindaloo'].app = self
         sys.path.insert(0, os.path.abspath(CONFIG_DIR))
         try:
             # If there is already, remove from modules and import again

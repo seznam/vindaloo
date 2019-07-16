@@ -1,6 +1,7 @@
 import os
 import sys
 
+import vindaloo
 from utils import chdir
 
 
@@ -15,6 +16,8 @@ def test_deploy(loo):
 
     with chdir('tests/test_roots/simple'):
         loo.main()
+
+    assert vindaloo.app.args.cluster == 'ko'
 
     # check arguments docker and kubectl was called with
     assert len(loo.cmd.call_args_list) == 3
