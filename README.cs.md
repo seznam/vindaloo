@@ -349,6 +349,18 @@ DEPLOY_JOB=campaign-run-manager vindaloo deploy dev
 
 Více viz [ukázka s cronjoby](examples/cron-jobs/k8s).
 
+Experimentální konfigurace pomocí tříd
+--------------------------------------
+
+Kubernetí manifesty mohou být nakonfigurovány použitím slovníků (klasický způsob) nebo tříd (experimentální).
+Tato vlastnost není ještě stabilní a měla by být použita jen s opatrností.
+Výhodou je, že základ konfigurace může být snadněji měněn v konfigurácích pro jednotlivá prostředí.
+
+Datová struktura použitá ve třídách je v podstatě stejná jako v K8S JSON manifestech, s několika výjimkami.
+Všechny `name`, `value` seznamy používané v K8S (např. `env`) jsou uložené jako `key`: `value` pythonní slovníky.
+
+Více v [ukázce](examples/class-config/k8s).
+
 Jak `Lůa` ubuildit
 ------------------
 
