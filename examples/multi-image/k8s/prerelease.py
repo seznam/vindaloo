@@ -4,8 +4,8 @@ from base import *
 DEPLOYMENT_ADMINWEB.update({
     'env': [
         {
-            'key': 'PONY_ENVIRONMENT',
-            'val': "scif.sos-prerelease"
+            'key': 'ENVIRONMENT',
+            'val': "sos-prerelease"
         },
         {
             'key': 'PORT',

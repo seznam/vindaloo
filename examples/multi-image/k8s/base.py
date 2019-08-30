@@ -4,19 +4,19 @@ MAINTAINER = "Daniel Milde <daniel.milde@firma.seznam.cz>"
 
 CONFIG_WEB = {
     'maintainer': MAINTAINER,
-    'version': versions['sos/adminweb'],
-    'image_name': 'sos/adminweb',
+    'version': versions['avengers/adminweb'],
+    'image_name': 'avengers/adminweb',
     'https_proxy': "http://proxy.dev.dszn.cz:3128",
 }
 CONFIG_PROXY = {
     'maintainer': MAINTAINER,
-    'version': versions['sos/adminweb-proxy'],
-    'image_name': 'sos/adminweb-proxy',
+    'version': versions['avengers/adminweb-proxy'],
+    'image_name': 'avengers/adminweb-proxy',
 }
 CONFIG_OUTAGE = {
     'maintainer': MAINTAINER,
-    'version': versions['sos/adminweb-outage'],
-    'image_name': 'sos/adminweb-outage',
+    'version': versions['avengers/adminweb-outage'],
+    'image_name': 'avengers/adminweb-outage',
 }
 
 DEPLOYMENT_ADMINWEB = {
@@ -26,8 +26,8 @@ DEPLOYMENT_ADMINWEB = {
     'image_proxy': "{}:{}".format(CONFIG_PROXY['image_name'], CONFIG_PROXY['version']),
     'env': [
         {
-            'key': 'PONY_ENVIRONMENT',
-            'val': "scif.sos-stable"
+            'key': 'ENVIRONMENT',
+            'val': "sos-stable"
         },
         {
             'key': 'PORT',

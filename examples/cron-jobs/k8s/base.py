@@ -56,8 +56,8 @@ CRON_JOB = {
     'image': "{}:{}".format(CONFIG['image_name'], CONFIG['version']),
     'env': [
         {
-            'key': 'PONY_ENVIRONMENT',
-            'val': "scif.avengers-stable"
+            'key': 'ENVIRONMENT',
+            'val': "avengers-stable"
         },
     ],
 }

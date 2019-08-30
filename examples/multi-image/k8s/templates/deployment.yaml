@@ -36,7 +36,7 @@ spec:
         imagePullPolicy: IfNotPresent
         volumeMounts:
         - name: localconfig
-          mountPath: "/www/sos/core/conf/app.local.conf"
+          mountPath: "/www/avengers/core/conf/app.local.conf"
           subPath: "app.local.conf"
         ports:
         - containerPort: {{port_web}}

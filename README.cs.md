@@ -168,8 +168,8 @@ import versions
 # bude jen pozit dal
 CONFIG = {
     'maintainer': "Viktor Lacina <viktor.lacina@firma.seznam.cz>",
-    'version': versions['sos/groupware_bridge'],
-    'image_name': 'sos/groupware_bridge',
+    'version': versions['avengers/groupware_bridge'],
+    'image_name': 'avengers/groupware_bridge',
 }
 
 # Bude jen pouzit dale
@@ -263,7 +263,7 @@ Ukázkový versions.json
 
 ```
 {
-  "sos/groupware_bridge": "1.0.0"
+  "avengers/groupware_bridge": "1.0.0"
 }
 ```
 

@@ -392,7 +392,7 @@ class Vindaloo:
             pure_image_name = self._strip_image_name(image_name)
 
             if self.args_image:
-                # jmeno bez hostu, napr. sos/adminserver
+                # jmeno bez hostu, napr. avengers/adminserver
                 if pure_image_name not in self.args_image:
                     self._out('skipping image {}'.format(pure_image_name))
                     continue
