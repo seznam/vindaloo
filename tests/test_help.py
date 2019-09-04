@@ -6,7 +6,7 @@ import pytest
 from utils import chdir
 from vindaloo.vindaloo import Vindaloo
 
-ALL_CMDS_STRING = 'build,pull,push,kubeenv,versions,kubelogin,deploy,build-push-deploy'
+ALL_CMDS_STRING = 'build,pull,push,kubeenv,versions,deploy,build-push-deploy'
 
 
 @mock.patch('argparse._sys.exit')

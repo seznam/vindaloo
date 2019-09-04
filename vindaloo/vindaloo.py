@@ -69,14 +69,6 @@ class Vindaloo:
         )
         return spc.returncode == 0
 
-    def k8s_login(self) -> None:
-        """
-        Runs k8s login script.
-        """
-        filename = pkg_resources.resource_filename(__name__, 'data/kube-dex-login.sh')
-        spc = self.cmd(['bash', filename])
-        assert spc.returncode == 0
-
     def _confirm(self, message: str, default: str = "y") -> bool:
         res = input("{}{}: ".format(message, " [{}]".format(default)) if default else "")
         if res in SUCCESS_REPLY or (not res and default in SUCCESS_REPLY):
@@ -888,8 +880,6 @@ class Vindaloo:
             self.push_images()
         elif command == "versions":
             self.collect_versions()
-        elif command == "kubelogin":
-            self.k8s_login()
         elif command == "deploy":
             self.k8s_deploy()
         elif command == "kubeenv":
@@ -974,8 +964,6 @@ class Vindaloo:
             choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple(),
             nargs='?'
         )
-
-        subparsers.add_parser('kubelogin', help='logs into kubernetes')
 
         deploy_parser = subparsers.add_parser('deploy', help='nasadi zmeny do clusteru')
         deploy_parser.add_argument(
@@ -1068,7 +1056,7 @@ class Vindaloo:
                 self.fail("Directory does not contain k8s subdirectory or Dockerfile is missing. Are we in module directory?")
 
         if self.args.command in NEEDS_K8S_LOGIN and not self._am_i_logged_in():
-            self.fail("You are not logged in, try 'vindaloo kubelogin'")
+            self.fail("You are not logged in Kubernetes")
 
         self.do_command()
 

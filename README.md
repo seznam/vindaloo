@@ -34,7 +34,6 @@ What can it do
 - deploy to k8s
 - check versions in k8s
 - edit k8s secrets
-- login into cluster
 - bash completion
 
 Why to use Vindaloo and not X
