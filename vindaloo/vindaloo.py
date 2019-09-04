@@ -28,7 +28,7 @@ from .examples import (
 )
 from .objects import JsonSerializable
 
-DO_NOT_NEED_CONFIG_FILE = ('init', 'completion')
+DO_NOT_NEED_CONFIG_FILE = ('init', 'completion', 'version')
 DO_NOT_NEED_K8S_DIR = ('edit-secret',)
 
 NONE = "base"
@@ -41,7 +41,7 @@ NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy', 'edit-secret')
 CONFIG_DIR = 'k8s'
 CHECK_VERSION_URL = 'https://vindaloo.dev.dszn.cz/version.json'
 
-VERSION = '2.0.0'
+VERSION = '2.1.0'
 
 
 class RefreshException(Exception):
@@ -878,6 +878,8 @@ class Vindaloo:
             self.pull_images()
         elif command == "push":
             self.push_images()
+        elif command == "version":
+            self._out(VERSION)
         elif command == "versions":
             self.collect_versions()
         elif command == "deploy":
@@ -955,6 +957,8 @@ class Vindaloo:
             choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
             default=default_cluster, nargs='?'
         )
+
+        subparsers.add_parser('version', help='print version of Vindaloo')
 
         versions_parser = subparsers.add_parser('versions', help='list all images and compares to the cluster')
         versions_parser.add_argument('--json', help='output as json', action='store_true')
