@@ -40,7 +40,7 @@ class Deployment(JsonSerializable, PrepareDataMixin):
     obj_type = "deployment"
     api_version = "extensions/v1beta1"
 
-    def __init__(self, name, containers, volumes=None, replicas=1, annotations=None, metadata=None, labels=None):
+    def __init__(self, name, containers, volumes=None, replicas=1, annotations=None, metadata=None, labels=None, **kwargs):
         self.name = name
         self.replicas = replicas
         self.annotations = annotations or {}
@@ -52,6 +52,7 @@ class Deployment(JsonSerializable, PrepareDataMixin):
         self.labels = labels or {
             'app': self.name,
         }
+        self.additional_params = kwargs
 
     def prepare_container_data(self, data, app):
         data = super().prepare_container_data(data, app)
@@ -92,6 +93,8 @@ class Deployment(JsonSerializable, PrepareDataMixin):
             }
         }
 
+        res.update(self.additional_params)
+
         return json.dumps(res, indent=4)
 
 
@@ -105,7 +108,8 @@ class CronJob(JsonSerializable, PrepareDataMixin):
             restart_policy='Never',
             concurrency_policy='Allow',
             volumes=None,
-            annotations=None, metadata=None, labels=None
+            annotations=None, metadata=None, labels=None,
+            **kwargs
     ):
         self.name = name
         self.schedule = schedule
@@ -121,6 +125,7 @@ class CronJob(JsonSerializable, PrepareDataMixin):
         self.labels = labels or {
             'app': self.name,
         }
+        self.additional_params = kwargs
 
     def to_json(self, app):
         res = {
@@ -160,6 +165,8 @@ class CronJob(JsonSerializable, PrepareDataMixin):
             }
         }
 
+        res.update(self.additional_params)
+
         return json.dumps(res, indent=4)
 
 
@@ -172,7 +179,8 @@ class Job(JsonSerializable, PrepareDataMixin):
             termination_grace_period=30,
             restart_policy='Never',
             volumes=None,
-            annotations=None, metadata=None, labels=None
+            annotations=None, metadata=None, labels=None,
+            **kwargs
     ):
         self.name = name
         self.termination_grace_period = termination_grace_period
@@ -186,6 +194,7 @@ class Job(JsonSerializable, PrepareDataMixin):
         self.labels = labels or {
             'app': self.name,
         }
+        self.additional_params = kwargs
 
     def to_json(self, app):
         res = {
@@ -218,6 +227,8 @@ class Job(JsonSerializable, PrepareDataMixin):
             }
         }
 
+        res.update(self.additional_params)
+
         return json.dumps(res, indent=4)
 
 
@@ -228,7 +239,8 @@ class Service(JsonSerializable):
     def __init__(
             self, name, ports, selector,
             service_type='ClusterIP', load_balancer_ip=None, cluster_ip=None,
-            annotations=None, metadata=None, labels=None
+            annotations=None, metadata=None, labels=None,
+            **kwargs
     ):
         self.name = name
         self.ports = ports or {}
@@ -241,6 +253,7 @@ class Service(JsonSerializable):
             'name': self.name,
         }
         self.metadata['annotations'] = self.annotations or {}
+        self.additional_params = kwargs
 
     def to_json(self, app):
         res = {
@@ -263,5 +276,7 @@ class Service(JsonSerializable):
             res['spec']['loadBalancerIP'] = self.load_balancer_ip
         if self.cluster_ip:
             res['spec']['clusterIP'] = self.cluster_ip
+
+        res.update(self.additional_params)
 
         return json.dumps(res, indent=4)

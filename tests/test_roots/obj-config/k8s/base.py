@@ -45,6 +45,9 @@ DEPLOYMENT = Deployment(
             },
         },
     },
+    something={
+        'foo': 'boo',
+    }
 )
 
 SERVICE = Service(

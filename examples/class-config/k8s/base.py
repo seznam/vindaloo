@@ -15,10 +15,8 @@ ENV_PUBLIC = {
 
 ENV_PRIVATE = {
     **ENV_PUBLIC,
-    **{
-        'WEB_CONCURRENCY': "40",
-        'REGISTER_PRIVATE_METHODS': "1",
-    }
+    'WEB_CONCURRENCY': "40",
+    'REGISTER_PRIVATE_METHODS': "1",
 }
 
 DEPLOYMENT_PUBLIC = Deployment(

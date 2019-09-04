@@ -237,3 +237,4 @@ def test_deploy_config_obj(loo, test_temp_dir):
     assert data['apiVersion'] == 'extensions/v1beta1'
     assert data['kind'] == 'Deployment'
     assert data['spec']['template']['spec']['volumes'][0]['secret']['secretName'] == 'local-conf'
+    assert data['something'] == {'foo': 'boo'}
