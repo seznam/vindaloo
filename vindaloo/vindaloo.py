@@ -41,7 +41,7 @@ NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy', 'edit-secret')
 CONFIG_DIR = 'k8s'
 CHECK_VERSION_URL = 'https://vindaloo.dev.dszn.cz/version.json'
 
-VERSION = '2.1.0'
+VERSION = '2.1.1'
 
 
 class RefreshException(Exception):
@@ -207,7 +207,10 @@ class Vindaloo:
 
         if self.args.watch:
             for yaml_conf in self.config_module.K8S_OBJECTS.get('deployment', []):
-                deployment_name = yaml_conf.get('config', {}).get('ident_label', '')
+                if isinstance(yaml_conf, JsonSerializable):
+                    deployment_name = yaml_conf.name
+                else:
+                    deployment_name = yaml_conf.get('config', {}).get('ident_label', '')
                 if deployment_name:
                     self._out('Waiting for rollout {} to finish'.format(deployment_name))
                     self.cmd(["kubectl", "rollout", "status", "deployment", deployment_name])
