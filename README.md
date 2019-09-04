@@ -41,7 +41,7 @@ Why to use Vindaloo and not X
 -----------------------------
 
 - can be distributed as one executable file, no need to install
-- configuration using Python files which implies small code duplication and huge expressivity
+- configuration using Python files which implies little code duplication and huge expressivity
 - powerful templating using Mustache language (pystache)
 - can include parts of templates in Dockerfiles
 - can build multiple images from one component
@@ -350,6 +350,18 @@ DEPLOY_JOB=campaign-run-manager vindaloo deploy dev
 ```
 
 See the [example](examples/cron-jobs/k8s).
+
+Experimental configuration using classes
+----------------------------------------
+
+Kubernetes manifests can be configured using dicts (classical way) or classes (experimental).
+This feature is not considered stable yet and should be used with caution.
+The advantage is that base configuration can be more easily changed in environment config files.
+
+The data structure used in classes is basically the same as in K8S JSON manifests with some exceptions.
+All `name`, `value` lists used in K8S (i.e. `env`) are stored as `key`: `value` python dicts.
+
+See the [example](examples/class-config/k8s).
 
 How to build `vindaloo`
 -----------------------

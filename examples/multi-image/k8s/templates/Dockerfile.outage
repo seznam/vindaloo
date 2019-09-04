@@ -20,17 +20,17 @@ RUN groupadd -r --gid=1000 sos-adminweb-outage && \
     useradd -r --uid=1000 -b /home/sos-adminweb-outage -d /home/sos-adminweb-outage -m -s /bin/bash -g sos-adminweb-outage sos-adminweb-outage
 ENV USER="sos-adminweb-outage"
 
-COPY adminweb-proxy/conf/nginx-outage.conf /www/sos/adminweb-outage/conf/nginx-outage.conf
-COPY adminweb-proxy/conf/mime.types /www/sos/adminweb-outage/conf/mime.types
-COPY adminweb-proxy/static/503.html /www/sos/adminweb-outage/web/503.html
+COPY adminweb-proxy/conf/nginx-outage.conf /www/avengers/adminweb-outage/conf/nginx-outage.conf
+COPY adminweb-proxy/conf/mime.types /www/avengers/adminweb-outage/conf/mime.types
+COPY adminweb-proxy/static/503.html /www/avengers/adminweb-outage/web/503.html
 
-COPY adminweb/src/robots.txt /www/sos/adminweb-outage/web/robots.txt
+COPY adminweb/src/robots.txt /www/avengers/adminweb-outage/web/robots.txt
 
-RUN mkdir -p /www/sos/adminweb-outage/bin \
+RUN mkdir -p /www/avengers/adminweb-outage/bin \
             /www/nginx/var/lib/szn-sos-outage-body \
             /www/nginx/lib/szn-sos-adminweb-outage \
-            /www/sos/adminweb-outage/log \
+            /www/avengers/adminweb-outage/log \
             /var/run/szn-sos-adminweb-outage
 
-ENTRYPOINT ["/www/nginx/sbin/nginx", "-c", "/www/sos/adminweb-outage/conf/nginx-outage.conf"]
+ENTRYPOINT ["/www/nginx/sbin/nginx", "-c", "/www/avengers/adminweb-outage/conf/nginx-outage.conf"]
 LABEL version="{{version}}"

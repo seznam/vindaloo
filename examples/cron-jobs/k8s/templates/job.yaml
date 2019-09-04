@@ -33,13 +33,13 @@ spec:
         {{/env}}
         volumeMounts:
         - name: localconfig
-          mountPath: "/www/sos/core/conf/app.local.conf"
+          mountPath: "/www/avengers/core/conf/app.local.conf"
           subPath: "app.local.conf"
         - name: robotpasswords
-          mountPath: "/www/sos/admin-robot/conf/admin-robot.passwd.conf"
+          mountPath: "/www/avengers/admin-robot/conf/admin-robot.passwd.conf"
           subPath: "admin-robot.passwd.conf"
         - name: robotconf
-          mountPath: "/www/sos/admin-robot/conf/admin-robot.conf.dev"
+          mountPath: "/www/avengers/admin-robot/conf/admin-robot.conf.dev"
           subPath: admin-robot.conf.dev
         resources:
           requests:

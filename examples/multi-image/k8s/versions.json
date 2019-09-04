@@ -1,5 +1,5 @@
 {
- "sos/adminweb": "1.2.0",
- "sos/adminweb-proxy": "1.2.0",
- "sos/adminweb-outage": "1.0.0"
+ "avengers/adminweb": "1.2.0",
+ "avengers/adminweb-proxy": "1.2.0",
+ "avengers/adminweb-outage": "1.0.0"
 }

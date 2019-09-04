@@ -4,8 +4,8 @@ from base import *
 CRON_JOB.update({
     'env': [
         {
-            'key': 'PONY_ENVIRONMENT',
-            'val': "scif.sos-dev"
+            'key': 'ENVIRONMENT',
+            'val': "avengers-dev"
         },
     ],
 })
