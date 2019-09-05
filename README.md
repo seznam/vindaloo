@@ -14,14 +14,14 @@ Python 3.5 and higher is required.
 Installation
 ------------
 
-Download latest [binary](`https://github.com/seznam/vindaloo/raw/master/latest/vindaloo.pex`)
+Download latest [pex binary](`https://github.com/seznam/vindaloo/raw/master/latest/vindaloo.pex`)
 
 ```
 sudo wget -O /usr/bin/vindaloo https://github.com/seznam/vindaloo/raw/master/latest/vindaloo.pex
 sudo chmod +x /usr/bin/vindaloo
 ```
 
-or using our pypi proxy:
+or use pip:
 
 ```
 pip3 install vindaloo
