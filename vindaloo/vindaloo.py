@@ -39,9 +39,9 @@ SUCCESS_REPLY = ("Y", "y", "a", "A")
 ENVS_CONFIG_NAME = 'vindaloo_conf'
 NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy', 'edit-secret')
 CONFIG_DIR = 'k8s'
-CHECK_VERSION_URL = 'https://vindaloo.dev.dszn.cz/version.json'
+CHECK_VERSION_URL = 'https://raw.githubusercontent.com/seznam/vindaloo/master/version.json'
 
-VERSION = '2.1.1'
+VERSION = '2.2.0'
 
 
 class RefreshException(Exception):
