@@ -21,7 +21,7 @@ sudo chmod +x /usr/bin/vindaloo
 nebo přes naší pypi proxy:
 
 ```
-pip3 install szn-vindaloo
+pip3 install vindaloo
 ```
 
 Co to umí

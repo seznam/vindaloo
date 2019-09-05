@@ -23,7 +23,7 @@ sudo chmod +x /usr/bin/vindaloo
 or using our pypi proxy:
 
 ```
-pip3 install szn-vindaloo
+pip3 install vindaloo
 ```
 
 What can it do

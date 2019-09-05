@@ -26,7 +26,8 @@ install-dev:
 test-all: clean 3.7-alpine 3.6-alpine 3.5-alpine
 
 upload:
-	python setup.py sdist upload -r sznpypi
+	python setup.py sdist bdist_wheel
+	python -m twine upload dist/*
 
 %-alpine:
 	docker run --rm -v $(PWD):/x python:$@ sh -c "pip install argcomplete pytest pystache typing; cd /x; pytest tests"
