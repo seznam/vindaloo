@@ -11,10 +11,10 @@ Vyžadován je Python 3.5 a vyšší.
 Instalace
 ---------
 
-Stáhnout poslední [binárku](`https://vindaloo.dev.dszn.cz/vindaloo.pex`)
+Stáhnout poslední [binárku](`https://github.com/seznam/vindaloo/raw/master/latest/vindaloo.pex`)
 
 ```
-sudo wget --no-check-certificate -O /usr/bin/vindaloo https://vindaloo.dev.dszn.cz/vindaloo.pex
+sudo wget -O /usr/bin/vindaloo https://github.com/seznam/vindaloo/raw/master/latest/vindaloo.pex
 sudo chmod +x /usr/bin/vindaloo
 ```
 

@@ -13,10 +13,10 @@ Python 3.5 and higher is required.
 Installation
 ------------
 
-Download latest [binary](`https://vindaloo.dev.dszn.cz/vindaloo.pex`)
+Download latest [binary](`https://github.com/seznam/vindaloo/raw/master/latest/vindaloo.pex`)
 
 ```
-sudo wget --no-check-certificate -O /usr/bin/vindaloo https://vindaloo.dev.dszn.cz/vindaloo.pex
+sudo wget -O /usr/bin/vindaloo https://github.com/seznam/vindaloo/raw/master/latest/vindaloo.pex
 sudo chmod +x /usr/bin/vindaloo
 ```
 
