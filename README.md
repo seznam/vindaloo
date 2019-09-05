@@ -1,6 +1,7 @@
 
 
 # Vindaloo
+[![Build Status](https://travis-ci.org/seznam/vindaloo.svg?branch=master)](https://travis-ci.org/seznam/vindaloo)
 
 `Vindaloo` is universal deployer into kubernetes. It easily provides one project to work with multiple docker registries, repositories, kubernetes clusters and namespaces without the need of duplicating configuration.
 
