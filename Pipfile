@@ -10,3 +10,5 @@ typing = "*"
 
 [dev-packages]
 pytest = "*"
+pytest-cov = "*"
+codecov = "*"
