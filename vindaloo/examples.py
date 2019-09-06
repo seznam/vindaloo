@@ -1,24 +1,26 @@
 EXAMPLE_VINDALOO_CONF = """
-DEV = "dev"
-TEST = "test"
-STAGING = "staging"
-STABLE = "stable"
-
-LOCAL_ENVS = [DEV, TEST, STAGING, STABLE]
-
-K8S_NAMESPACES = {{
-    DEV: "{k8s_prefix}-dev",
-    TEST: "{k8s_prefix}-test",
-    STAGING: "{k8s_prefix}-staging",
-    STABLE: "{k8s_prefix}-stable",
+ENVS = {{
+    'dev': {{
+        'k8s_namespace': '{k8s_prefix}-dev',
+        'k8s_clusters': {k8s_clusters},
+        'docker_registry': '{docker_registry}',
+    }},
+    'test': {{
+        'k8s_namespace': '{k8s_prefix}-test',
+        'k8s_clusters': {k8s_clusters},
+        'docker_registry': '{docker_registry}',
+    }},
+    'staging': {{
+        'k8s_namespace': '{k8s_prefix}-staging',
+        'k8s_clusters': {k8s_clusters},
+        'docker_registry': '{docker_registry}',
+    }},
+    'stable': {{
+        'k8s_namespace': '{k8s_prefix}-stable',
+        'k8s_clusters': {k8s_clusters},
+        'docker_registry': '{docker_registry}',
+    }},
 }}
-
-K8S_CLUSTERS = {{
-    "ko": "kube1.ko",
-    "ng": "kube1.ng",
-}}
-
-ENVS_WITH_PROD_REGISTRY = [STAGING, STABLE]
 """
 
 EXAMPLE_BASE = """
@@ -76,7 +78,7 @@ DEPLOYMENT.update({
 
 """
 
-EXAMPLE_DOCKERFILE = """FROM doc.ker.dev.dszn.cz/debian:stretch
+EXAMPLE_DOCKERFILE = """FROM foo-registry.com/debian:stretch
 LABEL maintainer="{{{maintainer}}}"
 LABEL description=""
 

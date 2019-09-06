@@ -5,11 +5,11 @@ from utils import chdir
 
 def test_push_all(loo):
     # fake arguments
-    sys.argv = ['vindaloo', '--noninteractive', 'push']
+    sys.argv = ['vindaloo', '--noninteractive', 'push', 'dev']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = [
-        'doc.ker.dev.dszn.cz/test/foo:1.0.0',
-        'doc.ker.dev.dszn.cz/test/bar:2.0.0',
+        'foo-registry.com/test/foo:1.0.0',
+        'foo-registry.com/test/bar:2.0.0',
     ]
 
     with chdir('tests/test_roots/simple'):
@@ -22,21 +22,21 @@ def test_push_all(loo):
     assert push_cmd == [
         'docker',
         'push',
-        'doc.ker.dev.dszn.cz/test/foo:1.0.0',
+        'foo-registry.com/test/foo:1.0.0',
     ]
     assert push2_cmd == [
         'docker',
         'push',
-        'doc.ker.dev.dszn.cz/test/bar:2.0.0',
+        'foo-registry.com/test/bar:2.0.0',
     ]
 
 
 def test_push_one(loo):
-    sys.argv = ['vindaloo', '--noninteractive', 'push', 'test/foo']
+    sys.argv = ['vindaloo', '--noninteractive', 'push', 'dev', 'test/foo']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = [
-        'doc.ker.dev.dszn.cz/test/foo:1.0.0',
-        'doc.ker.dev.dszn.cz/test/bar:2.0.0',
+        'foo-registry.com/test/foo:1.0.0',
+        'foo-registry.com/test/bar:2.0.0',
     ]
 
     with chdir('tests/test_roots/simple'):
@@ -47,16 +47,16 @@ def test_push_one(loo):
     assert loo.cmd.call_args_list[1][0][0] == [
         'docker',
         'push',
-        'doc.ker.dev.dszn.cz/test/foo:1.0.0',
+        'foo-registry.com/test/foo:1.0.0',
     ]
 
 
 def test_push_not_built_image(loo):
-    sys.argv = ['vindaloo', '--noninteractive', 'push', 'test/foo']
+    sys.argv = ['vindaloo', '--noninteractive', 'push', 'dev', 'test/foo']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = [
-        'doc.ker.dev.dszn.cz/test/foo:0.0.9',  # je ubildena jina verze
-        'doc.ker.dev.dszn.cz/test/bar:2.0.0',
+        'foo-registry.com/test/foo:0.0.9',  # je ubildena jina verze
+        'foo-registry.com/test/bar:2.0.0',
     ]
 
     with chdir('tests/test_roots/simple'):
@@ -70,11 +70,11 @@ def test_push_not_built_image(loo):
 
 
 def test_push_latest(loo):
-    sys.argv = ['vindaloo', '--noninteractive', 'push', '--latest', 'test/foo']
+    sys.argv = ['vindaloo', '--noninteractive', 'push', '--latest', 'dev', 'test/foo']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = [
-        'doc.ker.dev.dszn.cz/test/foo:1.0.0',
-        'doc.ker.dev.dszn.cz/test/bar:2.0.0',
+        'foo-registry.com/test/foo:1.0.0',
+        'foo-registry.com/test/bar:2.0.0',
     ]
 
     with chdir('tests/test_roots/simple'):
@@ -88,21 +88,21 @@ def test_push_latest(loo):
     assert push_cmd == [
         'docker',
         'push',
-        'doc.ker.dev.dszn.cz/test/foo:1.0.0',
+        'foo-registry.com/test/foo:1.0.0',
     ]
     assert push2_cmd == [
         'docker',
         'push',
-        'doc.ker.dev.dszn.cz/test/foo:latest',
+        'foo-registry.com/test/foo:latest',
     ]
 
 
 def test_push_with_registry(loo):
-    sys.argv = ['vindaloo', '--noninteractive', 'push', '--registry', 'doc.ker', 'test/foo']
+    sys.argv = ['vindaloo', '--noninteractive', 'push', '--registry', 'foo-prog-registry.com', 'dev', 'test/foo']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = [
-        'doc.ker.dev.dszn.cz/test/foo:1.0.0',
-        'doc.ker.dev.dszn.cz/test/bar:2.0.0',
+        'foo-registry.com/test/foo:1.0.0',
+        'foo-registry.com/test/bar:2.0.0',
     ]
 
     with chdir('tests/test_roots/simple'):
@@ -116,11 +116,11 @@ def test_push_with_registry(loo):
     assert tag_cmd == [
         'docker',
         'tag',
-        'doc.ker.dev.dszn.cz/test/foo:1.0.0',
-        'doc.ker/test/foo:1.0.0',
+        'foo-registry.com/test/foo:1.0.0',
+        'foo-prog-registry.com/test/foo:1.0.0',
     ]
     assert push_cmd == [
         'docker',
         'push',
-        'doc.ker/test/foo:1.0.0',
+        'foo-prog-registry.com/test/foo:1.0.0',
     ]

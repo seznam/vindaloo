@@ -8,17 +8,17 @@ from utils import chdir
 
 def test_deploy(loo):
     # fake arguments
-    sys.argv = ['vindaloo', '--noninteractive', 'deploy', 'dev', 'ko']
+    sys.argv = ['vindaloo', '--noninteractive', 'deploy', 'dev', 'cluster1']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = [
-        'doc.ker.dev.dszn.cz/test/foo:1.0.0',
-        'doc.ker.dev.dszn.cz/test/bar:2.0.0',
+        'foo-registry.com/test/foo:1.0.0',
+        'foo-registry.com/test/bar:2.0.0',
     ]
 
     with chdir('tests/test_roots/simple'):
         loo.main()
 
-    assert vindaloo.app.args.cluster == 'ko'
+    assert vindaloo.app.args.cluster == 'cluster1'
 
     # check arguments docker and kubectl was called with
     assert len(loo.cmd.call_args_list) == 3
@@ -37,7 +37,7 @@ def test_deploy(loo):
         'kubectl',
         'config',
         'use-context',
-        'foo-dev-ko',
+        'foo-dev-cluster1',
     ]
     assert apply_cmd == [
         'kubectl',
@@ -48,11 +48,11 @@ def test_deploy(loo):
 
 def test_deploy_one_cluster(loo):
     # fake arguments
-    sys.argv = ['vindaloo', '--noninteractive', 'deploy', 'dev', 'ng']
+    sys.argv = ['vindaloo', '--noninteractive', 'deploy', 'dev', 'cluster2']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = [
-        'doc.ker.dev.dszn.cz/test/foo:1.0.0',
-        'doc.ker.dev.dszn.cz/test/bar:2.0.0',
+        'foo-registry.com/test/foo:1.0.0',
+        'foo-registry.com/test/bar:2.0.0',
     ]
 
     with chdir('tests/test_roots/simple'):
@@ -75,7 +75,7 @@ def test_deploy_one_cluster(loo):
         'kubectl',
         'config',
         'use-context',
-        'foo-dev-ng',
+        'foo-dev-cluster2',
     ]
     assert apply_cmd == [
         'kubectl',
@@ -86,11 +86,11 @@ def test_deploy_one_cluster(loo):
 
 def test_deploy_watch(loo):
     # fake arguments
-    sys.argv = ['vindaloo', '--noninteractive', 'deploy', '--watch', 'dev', 'ko']
+    sys.argv = ['vindaloo', '--noninteractive', 'deploy', '--watch', 'dev', 'cluster1']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = [
-        'doc.ker.dev.dszn.cz/test/foo:1.0.0',
-        'doc.ker.dev.dszn.cz/test/bar:2.0.0',
+        'foo-registry.com/test/foo:1.0.0',
+        'foo-registry.com/test/bar:2.0.0',
     ]
 
     with chdir('tests/test_roots/simple'):
@@ -114,7 +114,7 @@ def test_deploy_watch(loo):
         'kubectl',
         'config',
         'use-context',
-        'foo-dev-ko',
+        'foo-dev-cluster1',
     ]
     assert apply_cmd == [
         'kubectl',
@@ -132,7 +132,7 @@ def test_deploy_watch(loo):
 
 def test_deploy_configmap(loo):
     # fake arguments
-    sys.argv = ['vindaloo', '--noninteractive', 'deploy', 'dev', 'ko']
+    sys.argv = ['vindaloo', '--noninteractive', 'deploy', 'dev', 'cluster1']
 
     loo.cmd.return_value.stdout = b'{}'
 
@@ -157,7 +157,7 @@ def test_deploy_configmap(loo):
         'kubectl',
         'config',
         'use-context',
-        'foo-dev-ko',
+        'foo-dev-cluster1',
     ]
     assert apply_cmd == [
         'kubectl',
@@ -176,7 +176,7 @@ def test_deploy_configmap(loo):
 def test_deploy_to_outdir(loo, test_temp_dir):
     # fake arguments
 
-    sys.argv = ['vindaloo', '--noninteractive', 'deploy', '--apply-output-dir={}'.format(test_temp_dir), 'dev', 'ko']
+    sys.argv = ['vindaloo', '--noninteractive', 'deploy', '--apply-output-dir={}'.format(test_temp_dir), 'dev', 'cluster1']
 
     loo.cmd.return_value.stdout = b'{}'
 
@@ -208,17 +208,17 @@ def test_deploy_to_outdir(loo, test_temp_dir):
 
 def test_deploy_config_obj(loo, test_temp_dir):
     # fake arguments
-    sys.argv = ['vindaloo', '--noninteractive', 'deploy', '--apply-output-dir={}'.format(test_temp_dir), 'dev', 'ko']
+    sys.argv = ['vindaloo', '--noninteractive', 'deploy', '--apply-output-dir={}'.format(test_temp_dir), 'dev', 'cluster1']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = [
-        'doc.ker.dev.dszn.cz/test/foo:1.0.0',
-        'doc.ker.dev.dszn.cz/test/bar:2.0.0',
+        'foo-registry.com/test/foo:1.0.0',
+        'foo-registry.com/test/bar:2.0.0',
     ]
 
     with chdir('tests/test_roots/obj-config'):
         loo.main()
 
-    assert vindaloo.app.args.cluster == 'ko'
+    assert vindaloo.app.args.cluster == 'cluster1'
 
     # check arguments docker and kubectl was called with
     assert len(loo.cmd.call_args_list) == 1

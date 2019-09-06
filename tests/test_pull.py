@@ -5,7 +5,7 @@ from utils import chdir
 
 def test_pull_all(loo):
     # fake arguments
-    sys.argv = ['vindaloo', '--noninteractive', 'pull']
+    sys.argv = ['vindaloo', '--noninteractive', 'pull', 'dev']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = []
 
@@ -20,17 +20,17 @@ def test_pull_all(loo):
     assert pull_cmd == [
         'docker',
         'pull',
-        'doc.ker.dev.dszn.cz/test/foo:1.0.0',
+        'foo-registry.com/test/foo:1.0.0',
     ]
     assert pull2_cmd == [
         'docker',
         'pull',
-        'doc.ker.dev.dszn.cz/test/bar:2.0.0',
+        'foo-registry.com/test/bar:2.0.0',
     ]
 
 
 def test_pull_one(loo):
-    sys.argv = ['vindaloo', '--noninteractive', 'pull', 'test/foo']
+    sys.argv = ['vindaloo', '--noninteractive', 'pull', 'dev', 'test/foo']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = []
 
@@ -42,15 +42,15 @@ def test_pull_one(loo):
     assert loo.cmd.call_args_list[1][0][0] == [
         'docker',
         'pull',
-        'doc.ker.dev.dszn.cz/test/foo:1.0.0',
+        'foo-registry.com/test/foo:1.0.0',
     ]
 
 
 def test_pull_already_present(loo):
-    sys.argv = ['vindaloo', '--noninteractive', 'pull', 'test/foo']
+    sys.argv = ['vindaloo', '--noninteractive', 'pull', 'dev', 'test/foo']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = [
-        'doc.ker.dev.dszn.cz/test/foo:1.0.0',
+        'foo-registry.com/test/foo:1.0.0',
     ]
 
     with chdir('tests/test_roots/simple'):
