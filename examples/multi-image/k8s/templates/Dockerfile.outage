@@ -1,4 +1,4 @@
-FROM doc.ker.dev.dszn.cz/debian:stretch
+FROM foo-registry.com/debian:stretch
 LABEL maintainer="{{{maintainer}}}"
 LABEL description="SOS adminweb outage"
 

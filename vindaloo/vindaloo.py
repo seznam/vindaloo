@@ -27,6 +27,7 @@ from .examples import (
     EXAMPLE_SERVICE,
 )
 from .objects import JsonSerializable
+from .utils import NamespaceWithDefaultValue
 
 DO_NOT_NEED_CONFIG_FILE = ('init', 'completion', 'version')
 DO_NOT_NEED_K8S_DIR = ('edit-secret',)
@@ -41,7 +42,7 @@ NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy', 'edit-secret')
 CONFIG_DIR = 'k8s'
 CHECK_VERSION_URL = 'https://raw.githubusercontent.com/seznam/vindaloo/master/version.json'
 
-VERSION = '2.2.0'
+VERSION = '3.0.0'
 
 
 class RefreshException(Exception):
@@ -102,7 +103,10 @@ class Vindaloo:
         maintainer_email = self._input_text("Your email: ")
         k8s_prefix = self._input_text("K8S namespace prefix (usualy name of team, for example. [avengers]-stable): ")
         k8s_prefix = k8s_prefix.rstrip('-')
-        image_name = self._input_text("Name of docker repository (for example: avengers/adminweb): ")
+        k8s_clusters = self._input_text("K8S cluster names (separated by comma): ")
+        k8s_clusters = k8s_clusters.split(',')
+        docker_registry = self._input_text("Docker registry hostname: ")
+        image_name = self._input_text("Name of docker repository (for example: avengers/web): ")
         image_name = self._strip_image_name(image_name)
         ident_label = image_name.split('/')[1]
 
@@ -112,7 +116,11 @@ class Vindaloo:
         self._create_conf_file(
             '{}.py'.format(ENVS_CONFIG_NAME),
             EXAMPLE_VINDALOO_CONF,
-            dict(k8s_prefix=k8s_prefix)
+            dict(
+                k8s_prefix=k8s_prefix,
+                docker_registry=docker_registry,
+                k8s_clusters=k8s_clusters,
+            )
         )
 
         # lets create base.py, dev.py and versions.json
@@ -158,7 +166,7 @@ class Vindaloo:
         Switch to selected K8S context.
         """
         dep_env = self.args.environment
-        if dep_env not in self.envs_config_module.LOCAL_ENVS:
+        if dep_env not in self.envs_config_module.ENVS:
             self.fail("Unknown environment '{}'.".format(dep_env))
         self._select_k8s_context(dep_env, self.args.cluster)
 
@@ -168,7 +176,7 @@ class Vindaloo:
         """
         dep_env = self.args.environment
 
-        if dep_env not in self.envs_config_module.LOCAL_ENVS:
+        if dep_env not in self.envs_config_module.ENVS:
             self.fail("Unknown environment '{}'.".format(dep_env))
 
         self.config_module = self._import_config(dep_env)
@@ -365,10 +373,10 @@ class Vindaloo:
         """
         if (
                 hasattr(self.args, 'environment') and
-                self.args.environment in self.envs_config_module.ENVS_WITH_PROD_REGISTRY
+                self.args.environment in self.envs_config_module.ENVS
         ):
-            return 'doc.ker'
-        return 'doc.ker.dev.dszn.cz'
+            return self.envs_config_module.ENVS[self.args.environment]['docker_registry']
+        return ''
 
     @property
     def args_image(self) -> List[str]:
@@ -462,6 +470,17 @@ class Vindaloo:
                     self._out('skipping image {}'.format(pure_image_name))
                     continue
 
+            if self.args.from_env:
+                registry = self.envs_config_module.ENVS[self.args.from_env]['docker_registry']
+                source_image = self._image_name_with_tag(conf['config'], registry=registry)
+
+                if source_image not in known_images:
+                    self._out("skipping image {}, it's not built yet...".format(source_image))
+                    continue
+
+                self._tag_image(source_image, image_name_with_tag)
+                known_images = self._get_local_images()
+
             if image_name_with_tag not in known_images:
                 self._out("skipping image {}, it's not built yet...".format(image_name_with_tag))
                 continue
@@ -499,17 +518,25 @@ class Vindaloo:
         """
         Returns repository (aka name of image) without registry
         """
-        if image_name.startswith("doc.ker"):
-            return image_name[(image_name.find("/") + 1):]
-        else:
-            return image_name
+        if (
+                hasattr(self.args, 'environment') and
+                self.args.environment in self.envs_config_module.ENVS
+        ):
+            registry = self.envs_config_module.ENVS[self.args.environment]['docker_registry']
+            if image_name.startswith(registry):
+                return image_name[(image_name.find("/") + 1):]
+        for env in self.envs_config_module.ENVS:
+            registry = self.envs_config_module.ENVS[env]['docker_registry']
+            if image_name.startswith(registry):
+                return image_name[(image_name.find("/") + 1):]
+        return image_name
 
     def _collect_local_versions(self, only_env: str = None) -> Dict:
         """
         Returns list of images defined for individual environments
         """
         local_versions = {}
-        for env in self.envs_config_module.LOCAL_ENVS:
+        for env in self.envs_config_module.ENVS:
             if only_env and only_env != env:
                 continue
             if self._import_config(env):
@@ -526,15 +553,18 @@ class Vindaloo:
         List of images for individual K8S namespaces.
         """
         remote_versions = {}  # type: Dict[str, Any]
-        for env in self.envs_config_module.K8S_NAMESPACES:
+        for env in self.envs_config_module.ENVS:
             if only_env and only_env != env:
                 continue
 
             if self._import_config(env):
-                for cluster in self.envs_config_module.K8S_CLUSTERS:
+                for cluster in self.envs_config_module.ENVS[env].get('k8s_clusters', []):
                     self._select_k8s_context(env, cluster)
                     for deployment in self.config_module.K8S_OBJECTS.get("deployment", []):
-                        module_name = deployment['config']['ident_label']
+                        if isinstance(deployment, JsonSerializable):
+                            module_name = deployment.name
+                        else:
+                            module_name = deployment['config']['ident_label']
                         remote_images = self.get_k8s_deployment_version(module_name)
                         if not remote_images:
                             continue
@@ -576,7 +606,7 @@ class Vindaloo:
             for image_ in summary[env]:
                 vers = summary[env][image_]
                 warning = ""
-                for cluster in self.envs_config_module.K8S_CLUSTERS:
+                for cluster in self.envs_config_module.ENVS[env]['k8s_clusters']:
                     if vers["local"] != vers["remote"].get(cluster):
                         warning = " [DIFFERS]"
                 self._out("Image: {} in config: {}, on server: {} {}".format(
@@ -591,7 +621,7 @@ class Vindaloo:
             "kubectl", "get", "deployment", module_name,
             "-o=jsonpath='{$.spec.template.spec.containers[*].image}'"
         ], get_stdout=True)
-        if res.returncode == 0:
+        if res.returncode == 0 and res.stdout:
             output = res.stdout.decode("utf-8").strip("'").split(" ")
             return output
         else:
@@ -601,20 +631,29 @@ class Vindaloo:
         """
         Change K8S context
         """
-        context = '{}-{}'.format(self.envs_config_module.K8S_NAMESPACES[env], cluster)
+        if (
+                hasattr(self.envs_config_module, 'K8S_CLUSTER_ALIASES') and
+                cluster in self.envs_config_module.K8S_CLUSTER_ALIASES
+        ):
+            cluster = self.envs_config_module.K8S_CLUSTER_ALIASES[cluster]
+
+        if not cluster:
+            cluster = self.envs_config_module.ENVS[env]['k8s_clusters'][0]
+
+        context = '{}-{}'.format(self.envs_config_module.ENVS[env]['k8s_namespace'], cluster)
 
         if not self._cmd_check(["kubectl", "config", "use-context", context], self.args.quiet):
             if not self._confirm("K8s context is not set {}. Should I create it?".format(context)):
                 self._out('Deploy action terminated')
                 sys.exit(0)
-            username = self._input_text("Insert username: ")
+            username = self._input_text("Insert username for cluster {}: ".format(cluster))
             assert self._cmd_check([
                 "kubectl", "config", "set-context", context, "--cluster={}".format(
-                    self.envs_config_module.K8S_CLUSTERS[cluster]
+                    cluster
                 ),
                 "--namespace={}".format(
-                    self.envs_config_module.K8S_NAMESPACES[env]
-                ), "--user={}-{}".format(username, cluster)])
+                    self.envs_config_module.ENVS[env]['k8s_namespace']
+                ), "--user={}".format(username)])
             assert self._cmd_check(["kubectl", "config", "use-context", context], self.args.quiet)
             self._out("Environment changed to {} ({})".format(env, context))
 
@@ -915,10 +954,18 @@ class Vindaloo:
         return images
 
     def get_arg_parser(self) -> argparse.ArgumentParser:
+        if not hasattr(self.envs_config_module, 'ENVS'):
+            self.fail("Variable ENVS not found in {}".format(self.envs_config_module))
 
-        clusters = list(self.envs_config_module.K8S_CLUSTERS.keys()) if self.envs_config_module else []
+        environments = self.envs_config_module.ENVS.keys() if self.envs_config_module else tuple()
+        clusters = set()
+        for env in self.envs_config_module.ENVS.values():
+            clusters.update(env.get('k8s_clusters', []))
+
+        if hasattr(self.envs_config_module, 'K8S_CLUSTER_ALIASES'):
+            clusters.update(self.envs_config_module.K8S_CLUSTER_ALIASES.keys())
+
         clusters_str = ",".join(clusters)
-        default_cluster = clusters[0] if clusters else ''
 
         parser = argparse.ArgumentParser(description=self.__class__.__doc__)
         parser.add_argument('--debug', action='store_true')
@@ -928,10 +975,14 @@ class Vindaloo:
 
         subparsers = parser.add_subparsers(title='commands', dest='command')
 
-        build_parser = subparsers.add_parser('init', help='prepares project for Vindaloo')
-        build_parser.add_argument('dir', help='project directory')
+        init_parser = subparsers.add_parser('init', help='prepares project for Vindaloo')
+        init_parser.add_argument('dir', help='project directory')
 
         build_parser = subparsers.add_parser('build', help='builds Docker images (all of them)')
+        build_parser.add_argument(
+            'environment', help='environment for which we want to build image',
+            choices=environments,
+        )
         build_parser.add_argument(
             'image', help='image we want to build', nargs='?', action='append'
         ).completer = self._image_completer
@@ -940,25 +991,34 @@ class Vindaloo:
 
         pull_parser = subparsers.add_parser('pull', help='pull docker images (all of them)')
         pull_parser.add_argument(
+            'environment', help='environment for which we want to pull',
+            choices=environments,
+        )
+        pull_parser.add_argument(
             'image', help='image we want to pull', nargs='?', action='append'
         ).completer = self._image_completer
 
         push_parser = subparsers.add_parser('push', help='push docker image (all of them)')
         push_parser.add_argument(
+            'environment', help='environment for which we want to push',
+            choices=environments,
+        )
+        push_parser.add_argument(
             'image', help='image we want to push', nargs='?', action='append'
         ).completer = self._image_completer
         push_parser.add_argument('--latest', help='push also as latest', action='store_true')
-        push_parser.add_argument('--registry', help='tagne image and push into different registry')
+        push_parser.add_argument('--registry', help='tag image and push into different registry')
+        push_parser.add_argument('--from-env', help='source env for which was the image built')
 
         kubeenv_parser = subparsers.add_parser('kubeenv', help='switch current kubernetes context in ENV')
         kubeenv_parser.add_argument(
             'environment', help='environment we want to switch',
-            choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple(),
+            choices=environments,
         )
         kubeenv_parser.add_argument(
             'cluster', help='name of cluster ({})'.format(clusters_str),
-            choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
-            default=default_cluster, nargs='?'
+            choices=clusters,
+            nargs='?'
         )
 
         subparsers.add_parser('version', help='print version of Vindaloo')
@@ -968,7 +1028,7 @@ class Vindaloo:
         versions_parser.add_argument(
             'environment',
             help='env for which we want comparison',
-            choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple(),
+            choices=environments,
             nargs='?'
         )
 
@@ -979,12 +1039,12 @@ class Vindaloo:
         )
         deploy_parser.add_argument(
             'environment', help='environment for deployment',
-            choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple()
+            choices=environments
         )
         deploy_parser.add_argument(
             'cluster', help='cluster name ({})'.format(clusters_str),
-            choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
-            default=default_cluster, nargs='?'
+            choices=clusters,
+            nargs='?'
         )
         deploy_parser.add_argument(
             '--apply-output-dir',
@@ -995,12 +1055,12 @@ class Vindaloo:
         bpd_parser = subparsers.add_parser('build-push-deploy', help='makes all three steps in one')
         bpd_parser.add_argument(
             'environment', help='environment for deployment',
-            choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple()
+            choices=environments
         )
         bpd_parser.add_argument(
             'cluster', help='cluster name ({})'.format(clusters_str),
-            choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
-            default=default_cluster, nargs='?'
+            choices=clusters,
+            nargs='?'
         )
         bpd_parser.add_argument(
             'image', help='image we want to build/push', nargs='?', action='append'
@@ -1008,6 +1068,7 @@ class Vindaloo:
         bpd_parser.add_argument('--latest', help='push also as latest', action='store_true')
         bpd_parser.add_argument('--cache', help='use cache', action='store_true')
         bpd_parser.add_argument('--registry', help='tag image and push into different registry')
+        bpd_parser.add_argument('--from-env', help='source env for which was the image built')
         bpd_parser.add_argument(
             '--watch', help='Wait for the new version to rollout',
             action='store_true'
@@ -1022,13 +1083,12 @@ class Vindaloo:
         edit_parser.add_argument(
             'environment',
             help='env for edit',
-            choices=self.envs_config_module.LOCAL_ENVS if self.envs_config_module else tuple(),
-            nargs='?'
+            choices=environments,
         )
         edit_parser.add_argument(
             'cluster', help='cluster name ({})'.format(clusters_str),
-            choices=self.envs_config_module.K8S_CLUSTERS if self.envs_config_module else tuple(),
-            default=default_cluster, nargs='?'
+            choices=clusters,
+            nargs='?'
         )
 
         subparsers.add_parser('completion', help='list commands for bash completion')
@@ -1046,7 +1106,9 @@ class Vindaloo:
 
         parser = self.get_arg_parser()
 
-        self.args, _ = parser.parse_known_args()
+        namespace, _ = parser.parse_known_args()
+        self.args = NamespaceWithDefaultValue(namespace)
+
         if not self.args.command:
             parser.print_help()
 

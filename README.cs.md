@@ -127,33 +127,33 @@ Ukázkový vindaloo_conf.py
 -------------------------
 
 ```
-# konstanty pro prostredi
-DEV = "dev"
-TEST = "test"
-PRERELEASE = "prerelease"
-STAGING = "staging"
-STABLE = "stable"
-
-# seznam prostredi, ktera chceme pouzivat
-LOCAL_ENVS = [DEV, TEST, PRERELEASE, STAGING, STABLE]
-
-# odpovidajici k8s namespacy
-K8S_NAMESPACES = {
-    DEV: "sos-dev",
-    TEST: "sos-test",
-    PRERELEASE: "sos-pre-release",
-    STAGING: "sos-staging",
-    STABLE: "sos-stable",
+ENVS = {
+    'dev': {
+        'k8s_namespace': 'avengers-dev',
+        'k8s_clusters': ['cluster1', 'cluster2'],
+        'docker_registry': 'foo-registry.com',
+    },
+    'test': {
+        'k8s_namespace': 'avengers-test',
+        'k8s_clusters': ['cluster1', 'cluster2'],
+        'docker_registry': 'foo-registry.com',
+    },
+    'staging': {
+        'k8s_namespace': 'avengers-staging',
+        'k8s_clusters': ['cluster1', 'cluster2'],
+        'docker_registry': 'foo-registry.com',
+    },
+    'stable': {
+        'k8s_namespace': 'avengers-stable',
+        'k8s_clusters': ['cluster1', 'cluster2'],
+        'docker_registry': 'foo-registry.com',
+    },
 }
 
-# seznam k8s clusteru
-K8S_CLUSTERS = {
-    "ko": "kube1.ko",
-    "ng": "kube1.ng",
+K8S_CLUSTER_ALIASES = {
+    'c1': 'cluster1',
+    'c2': 'cluster2',
 }
-
-# seznam prostredi, pro ktera chceme pouzivat produkcni docker registry
-ENVS_WITH_PROD_REGISTRY = [STAGING, STABLE]
 ```
 
 
@@ -166,29 +166,29 @@ import versions
 
 # bude jen pozit dal
 CONFIG = {
-    'maintainer': "Viktor Lacina <viktor.lacina@firma.seznam.cz>",
-    'version': versions['avengers/groupware_bridge'],
-    'image_name': 'avengers/groupware_bridge',
+    'maintainer': "Pepa Zdepa <pepa@depo.cz>",
+    'version': versions['avengers/cool_app'],
+    'image_name': 'avengers/coo_app',
 }
 
 # Bude jen pouzit dale
 DEPLOYMENT = {
     'replicas': 2,
-    'ident_label': "groupware-bridge",
+    'ident_label': "cool-app",
     'image': "{}:{}".format(CONFIG['image_name'], CONFIG['version']),
     'container_port': 6666,
     'env': [
         {
-            'key': 'EXCHANGE_SERVER',
-            'val': "posta.szn.cz"
+            'key': 'BACKEND',
+            'val': "some-url.com"
         },
     ]
 }
 
 # Bude jen pouzit dale
 SERVICE = {
-    'app_name': "groupware-bridge",
-    'ident_label': "groupware-bridge",
+    'app_name': "cool-app",
+    'ident_label': "cool-app",
     'container_port': 6666,
     'port': 31666,
 }
@@ -246,8 +246,8 @@ from base import *  #  Tim podedime konfiguraci
 DEPLOYMENT.update({
     'env': [
         {
-            'key': 'EXCHANGE_SERVER',
-            'val': "posta.dev.dszn.cz"
+            'key': 'BACKEND',
+            'val': "some-other-url.com"
         },
     ]
 })
@@ -262,7 +262,7 @@ Ukázkový versions.json
 
 ```
 {
-  "avengers/groupware_bridge": "1.0.0"
+  "avengers/cool_app": "1.0.0"
 }
 ```
 

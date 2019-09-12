@@ -3,13 +3,13 @@ import versions
 CONFIG = {
     'maintainer': "Test Test <test.test@firma.seznam.cz>",
     'version': versions['test/foo'],
-    'image_name': 'doc.ker.dev.dszn.cz/test/foo',
+    'image_name': 'foo-registry.com/test/foo',
 }
 
 CONFIG_SECOND = {
     'maintainer': "Test Test <test.test@firma.seznam.cz>",
     'version': versions['test/bar'],
-    'image_name': 'doc.ker.dev.dszn.cz/test/bar',
+    'image_name': 'foo-registry.com/test/bar',
 }
 
 DEPLOYMENT = {

@@ -130,33 +130,33 @@ Example vindaloo_conf.py
 ------------------------
 
 ```
-# constants for environments
-DEV = "dev"
-TEST = "test"
-PRERELEASE = "prerelease"
-STAGING = "staging"
-STABLE = "stable"
-
-# list of environments we want to use
-LOCAL_ENVS = [DEV, TEST, PRERELEASE, STAGING, STABLE]
-
-# correspoding k8s namespaces
-K8S_NAMESPACES = {
-    DEV: "avengers-dev",
-    TEST: "avengers-test",
-    PRERELEASE: "avengers-pre-release",
-    STAGING: "avengers-staging",
-    STABLE: "avengers-stable",
+ENVS = {
+    'dev': {
+        'k8s_namespace': 'avengers-dev',
+        'k8s_clusters': ['cluster1', 'cluster2'],
+        'docker_registry': 'foo-registry.com',
+    },
+    'test': {
+        'k8s_namespace': 'avengers-test',
+        'k8s_clusters': ['cluster1', 'cluster2'],
+        'docker_registry': 'foo-registry.com',
+    },
+    'staging': {
+        'k8s_namespace': 'avengers-staging',
+        'k8s_clusters': ['cluster1', 'cluster2'],
+        'docker_registry': 'foo-registry.com',
+    },
+    'stable': {
+        'k8s_namespace': 'avengers-stable',
+        'k8s_clusters': ['cluster1', 'cluster2'],
+        'docker_registry': 'foo-registry.com',
+    },
 }
 
-# list of k8s clusters
-K8S_CLUSTERS = {
-    "ko": "kube1.ko",
-    "ng": "kube1.ng",
+K8S_CLUSTER_ALIASES = {
+    'c1': 'cluster1',
+    'c2': 'cluster2',
 }
-
-# list of environments which use production docker registry
-ENVS_WITH_PROD_REGISTRY = [STAGING, STABLE]
 ```
 
 
@@ -169,29 +169,29 @@ import versions
 
 # will be used further
 CONFIG = {
-    'maintainer': "Viktor Lacina <viktor.lacina@firma.seznam.cz>",
-    'version': versions['avengers/groupware_bridge'],
-    'image_name': 'avengers/groupware_bridge',
+    'maintainer': "John Doe <john.doe@domain.com>",
+    'version': versions['avengers/cool_app'],
+    'image_name': 'avengers/cool_app',
 }
 
 # will be used further
 DEPLOYMENT = {
     'replicas': 2,
-    'ident_label': "groupware-bridge",
+    'ident_label': "cool-app",
     'image': "{}:{}".format(CONFIG['image_name'], CONFIG['version']),
     'container_port': 6666,
     'env': [
         {
-            'key': 'EXCHANGE_SERVER',
-            'val': "posta.szn.cz"
+            'key': 'BACKEND',
+            'val': "some-url.com"
         },
     ]
 }
 
 # will be used further
 SERVICE = {
-    'app_name': "groupware-bridge",
-    'ident_label': "groupware-bridge",
+    'app_name': "cool-app",
+    'ident_label': "cool-app",
     'container_port': 6666,
     'port': 31666,
 }
@@ -249,8 +249,8 @@ from base import *  #  config inheritance
 DEPLOYMENT.update({
     'env': [
         {
-            'key': 'EXCHANGE_SERVER',
-            'val': "posta.dev.dszn.cz"
+            'key': 'BACKEND',
+            'val': "some-other-url.com"
         },
     ]
 })
@@ -265,7 +265,7 @@ Example versions.json
 
 ```
 {
-  "avengers/groupware_bridge": "1.0.0"
+  "avengers/cool_app": "1.0.0"
 }
 ```
 
@@ -276,7 +276,7 @@ Example Dockerfile
 ```
 {{#includes}}{{&base_image}}{{/includes}}
 LABEL maintainer="{{{maintainer}}}"
-LABEL description="Avengers adminweb"
+LABEL description="Avengers cool app"
 
 COPY ...
 RUN ...

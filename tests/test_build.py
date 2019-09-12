@@ -5,7 +5,7 @@ from utils import chdir
 
 def test_build_all(loo):
     # fake parameters
-    sys.argv = ['vindaloo', '--noninteractive', 'build']
+    sys.argv = ['vindaloo', '--noninteractive', 'build', 'dev']
 
     with chdir('tests/test_roots/simple'):
         loo.main()
@@ -15,7 +15,7 @@ def test_build_all(loo):
         (([
             'docker',
             'build',
-            '-t', 'doc.ker.dev.dszn.cz/test/foo:1.0.0',
+            '-t', 'foo-registry.com/test/foo:1.0.0',
             '--no-cache',
             '-f', 'Dockerfile',
             '.'
@@ -23,7 +23,7 @@ def test_build_all(loo):
         (([
             'docker',
             'build',
-            '-t', 'doc.ker.dev.dszn.cz/test/bar:2.0.0',
+            '-t', 'foo-registry.com/test/bar:2.0.0',
             '--no-cache',
             '-f', 'Dockerfile',
             '.'
@@ -39,7 +39,7 @@ LABEL version="2.0.0"
 
 
 def test_build_one(loo):
-    sys.argv = ['vindaloo', '--noninteractive', 'build', 'test/foo']
+    sys.argv = ['vindaloo', '--noninteractive', 'build', 'dev', 'test/foo']
 
     with chdir('tests/test_roots/simple'):
         loo.main()
@@ -49,7 +49,7 @@ def test_build_one(loo):
         (([
             'docker',
             'build',
-            '-t', 'doc.ker.dev.dszn.cz/test/foo:1.0.0',
+            '-t', 'foo-registry.com/test/foo:1.0.0',
             '--no-cache',
             '-f', 'Dockerfile',
             '.'
@@ -67,7 +67,7 @@ LABEL version="1.0.0"
 
 
 def test_build_latest(loo):
-    sys.argv = ['vindaloo', '--noninteractive', 'build', '--latest', 'test/foo']
+    sys.argv = ['vindaloo', '--noninteractive', 'build', '--latest', 'dev', 'test/foo']
 
     with chdir('tests/test_roots/simple'):
         loo.main()
@@ -77,9 +77,9 @@ def test_build_latest(loo):
         (([
             'docker',
             'build',
-            '-t', 'doc.ker.dev.dszn.cz/test/foo:1.0.0',
+            '-t', 'foo-registry.com/test/foo:1.0.0',
             '--no-cache',
-            '-t', 'doc.ker.dev.dszn.cz/test/foo:latest',
+            '-t', 'foo-registry.com/test/foo:latest',
             '-f', 'Dockerfile',
             '.'
         ],),),
@@ -96,7 +96,7 @@ LABEL version="1.0.0"
 
 
 def test_build_latest_with_cache(loo):
-    sys.argv = ['vindaloo', '--noninteractive', 'build', '--cache', '--latest', 'test/foo']
+    sys.argv = ['vindaloo', '--noninteractive', 'build', '--cache', '--latest', 'dev', 'test/foo']
 
     with chdir('tests/test_roots/simple'):
         loo.main()
@@ -106,8 +106,8 @@ def test_build_latest_with_cache(loo):
         (([
             'docker',
             'build',
-            '-t', 'doc.ker.dev.dszn.cz/test/foo:1.0.0',
-            '-t', 'doc.ker.dev.dszn.cz/test/foo:latest',
+            '-t', 'foo-registry.com/test/foo:1.0.0',
+            '-t', 'foo-registry.com/test/foo:latest',
             '-f', 'Dockerfile',
             '.'
         ],),),
