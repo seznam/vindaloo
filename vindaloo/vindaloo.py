@@ -27,6 +27,7 @@ from .examples import (
     EXAMPLE_SERVICE,
 )
 from .objects import JsonSerializable
+from .utils import NamespaceWithDefaultValue
 
 DO_NOT_NEED_CONFIG_FILE = ('init', 'completion', 'version')
 DO_NOT_NEED_K8S_DIR = ('edit-secret',)
@@ -1105,7 +1106,9 @@ class Vindaloo:
 
         parser = self.get_arg_parser()
 
-        self.args, _ = parser.parse_known_args()
+        namespace, _ = parser.parse_known_args()
+        self.args = NamespaceWithDefaultValue(namespace)
+
         if not self.args.command:
             parser.print_help()
 
