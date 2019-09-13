@@ -42,7 +42,7 @@ NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy', 'edit-secret')
 CONFIG_DIR = 'k8s'
 CHECK_VERSION_URL = 'https://raw.githubusercontent.com/seznam/vindaloo/master/version.json'
 
-VERSION = '3.0.0'
+VERSION = '3.0.2'
 
 
 class RefreshException(Exception):
@@ -954,12 +954,10 @@ class Vindaloo:
         return images
 
     def get_arg_parser(self) -> argparse.ArgumentParser:
-        if not hasattr(self.envs_config_module, 'ENVS'):
-            self.fail("Variable ENVS not found in {}".format(self.envs_config_module))
-
-        environments = self.envs_config_module.ENVS.keys() if self.envs_config_module else tuple()
+        envs = getattr(self.envs_config_module, 'ENVS', {})
+        environments = envs.keys() if self.envs_config_module else tuple()
         clusters = set()
-        for env in self.envs_config_module.ENVS.values():
+        for env in envs.values():
             clusters.update(env.get('k8s_clusters', []))
 
         if hasattr(self.envs_config_module, 'K8S_CLUSTER_ALIASES'):
@@ -1103,6 +1101,8 @@ class Vindaloo:
         if len(sys.argv) > 1 and sys.argv[1] not in DO_NOT_NEED_CONFIG_FILE:
             if not self.envs_config_module:
                 self.fail("Config file {}.py not found in path".format(ENVS_CONFIG_NAME))
+            elif not hasattr(self.envs_config_module, 'ENVS'):
+                self.fail("Variable ENVS not found in {}".format(self.envs_config_module))
 
         parser = self.get_arg_parser()
 
