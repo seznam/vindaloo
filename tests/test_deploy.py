@@ -37,7 +37,7 @@ def test_deploy(loo):
         'kubectl',
         'config',
         'use-context',
-        'foo-dev-cluster1',
+        'foo-dev:cluster1',
     ]
     assert apply_cmd == [
         'kubectl',
@@ -75,7 +75,7 @@ def test_deploy_one_cluster(loo):
         'kubectl',
         'config',
         'use-context',
-        'foo-dev-cluster2',
+        'foo-dev:cluster2',
     ]
     assert apply_cmd == [
         'kubectl',
@@ -114,7 +114,7 @@ def test_deploy_watch(loo):
         'kubectl',
         'config',
         'use-context',
-        'foo-dev-cluster1',
+        'foo-dev:cluster1',
     ]
     assert apply_cmd == [
         'kubectl',
@@ -157,7 +157,7 @@ def test_deploy_configmap(loo):
         'kubectl',
         'config',
         'use-context',
-        'foo-dev-cluster1',
+        'foo-dev:cluster1',
     ]
     assert apply_cmd == [
         'kubectl',

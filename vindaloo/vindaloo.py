@@ -42,7 +42,7 @@ NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy', 'edit-secret')
 CONFIG_DIR = 'k8s'
 CHECK_VERSION_URL = 'https://raw.githubusercontent.com/seznam/vindaloo/master/version.json'
 
-VERSION = '3.0.2'
+VERSION = '3.1.0'
 
 
 class RefreshException(Exception):
@@ -640,7 +640,7 @@ class Vindaloo:
         if not cluster:
             cluster = self.envs_config_module.ENVS[env]['k8s_clusters'][0]
 
-        context = '{}-{}'.format(self.envs_config_module.ENVS[env]['k8s_namespace'], cluster)
+        context = '{}:{}'.format(self.envs_config_module.ENVS[env]['k8s_namespace'], cluster)
 
         if not self._cmd_check(["kubectl", "config", "use-context", context], self.args.quiet):
             if not self._confirm("K8s context is not set {}. Should I create it?".format(context)):

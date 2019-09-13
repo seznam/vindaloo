@@ -38,7 +38,7 @@ def test_versions_match(capsys):
         'config',
         'use-context',
     ]
-    assert loo.cmd.call_args_list[1][0][0][3] in ('foo-dev-cluster1', 'foo-dev-cluster2')  # nezname poradi
+    assert loo.cmd.call_args_list[1][0][0][3] in ('foo-dev:cluster1', 'foo-dev:cluster2')  # nezname poradi
     assert loo.cmd.call_args_list[2][0][0] == [
         'kubectl',
         'get',
@@ -51,7 +51,7 @@ def test_versions_match(capsys):
         'config',
         'use-context',
     ]
-    assert loo.cmd.call_args_list[3][0][0][3] in ('foo-dev-cluster1', 'foo-dev-cluster2')  # nezname poradi
+    assert loo.cmd.call_args_list[3][0][0][3] in ('foo-dev:cluster1', 'foo-dev:cluster2')  # nezname poradi
     assert loo.cmd.call_args_list[4][0][0] == [
         'kubectl',
         'get',
@@ -105,7 +105,7 @@ def test_versions_not_match(capsys):
         'config',
         'use-context',
     ]
-    assert loo.cmd.call_args_list[1][0][0][3] in ('foo-dev-cluster1', 'foo-dev-cluster2')  # unknown order
+    assert loo.cmd.call_args_list[1][0][0][3] in ('foo-dev:cluster1', 'foo-dev:cluster2')  # unknown order
     assert loo.cmd.call_args_list[2][0][0] == [
         'kubectl',
         'get',
@@ -118,7 +118,7 @@ def test_versions_not_match(capsys):
         'config',
         'use-context',
     ]
-    assert loo.cmd.call_args_list[3][0][0][3] in ('foo-dev-cluster1', 'foo-dev-cluster2')  # unknown order
+    assert loo.cmd.call_args_list[3][0][0][3] in ('foo-dev:cluster1', 'foo-dev:cluster2')  # unknown order
     assert loo.cmd.call_args_list[4][0][0] == [
         'kubectl',
         'get',

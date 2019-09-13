@@ -10,7 +10,7 @@ def test_select_dev_cluster1(loo):
     with chdir('tests/test_roots/simple'):
         loo.main()
 
-    assert loo.cmd.call_args[0][0] == ['kubectl', 'config', 'use-context', 'foo-dev-cluster1']
+    assert loo.cmd.call_args[0][0] == ['kubectl', 'config', 'use-context', 'foo-dev:cluster1']
 
 
 def test_select_dev_cluster2(loo):
@@ -20,4 +20,4 @@ def test_select_dev_cluster2(loo):
     with chdir('tests/test_roots/simple'):
         loo.main()
 
-    assert loo.cmd.call_args[0][0] == ['kubectl', 'config', 'use-context', 'foo-dev-cluster2']
+    assert loo.cmd.call_args[0][0] == ['kubectl', 'config', 'use-context', 'foo-dev:cluster2']
