@@ -40,11 +40,17 @@ class Deployment(JsonSerializable, PrepareDataMixin):
     obj_type = "deployment"
     api_version = "extensions/v1beta1"
 
-    def __init__(self, name, containers, volumes=None, replicas=1, annotations=None, metadata=None, labels=None, **kwargs):
+    def __init__(
+            self, name, containers,
+            volumes=None, replicas=1, termination_grace_period=30,
+            annotations=None, metadata=None, labels=None,
+            **kwargs
+    ):
         self.name = name
         self.replicas = replicas
         self.annotations = annotations or {}
         self.containers = containers
+        self.termination_grace_period = termination_grace_period
         self.volumes = volumes or {}
         self.metadata = metadata or {
             'name': self.name,
@@ -87,7 +93,8 @@ class Deployment(JsonSerializable, PrepareDataMixin):
                                 'name': key,
                                 **self.prepare_container_data(val, app)
                             } for key, val in self.containers.items()
-                        ]
+                        ],
+                        'terminationGracePeriodSeconds': self.termination_grace_period,
                     }
                 }
             }
@@ -221,7 +228,8 @@ class Job(JsonSerializable, PrepareDataMixin):
                                 'name': key,
                                 **self.prepare_container_data(val, app)
                             } for key, val in self.containers.items()
-                        ]
+                        ],
+                        'terminationGracePeriodSeconds': self.termination_grace_period,
                     }
                 }
             }

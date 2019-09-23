@@ -237,6 +237,7 @@ def test_deploy_config_obj(loo, test_temp_dir):
     assert data['apiVersion'] == 'extensions/v1beta1'
     assert data['kind'] == 'Deployment'
     assert data['spec']['template']['spec']['volumes'][0]['secret']['secretName'] == 'local-conf'
+    assert data['spec']['template']['spec']['terminationGracePeriodSeconds'] == 30
     assert data['something'] == {'foo': 'boo'}
 
     data = json.loads(open(os.path.join(test_temp_dir, 'foo_cronjob.yaml'), 'r').read())
@@ -252,3 +253,4 @@ def test_deploy_config_obj(loo, test_temp_dir):
     assert data['apiVersion'] == 'batch/v1'
     assert data['kind'] == 'Job'
     assert data['spec']['template']['metadata']['name'] == 'bar'
+    assert data['spec']['template']['spec']['terminationGracePeriodSeconds'] == 30
