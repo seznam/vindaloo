@@ -27,12 +27,22 @@ class PrepareDataMixin:
                 **val,
             } for key, val in data.get('env', {}).items()
         ]
-        data['volumeMounts'] = [
-            {
-                'name': key,
-                **val,
-            } for key, val in data.get('volumeMounts', {}).items()
-        ]
+
+        mounts = []
+        for volume_name, mount in data.get('volumeMounts', {}).items():
+            if isinstance(mount, dict):
+                mounts.append({
+                    'name': volume_name,
+                    **mount
+                })
+            else:  # we have more mounts of one volume
+                for one_mount in mount:
+                    mounts.append({
+                        'name': volume_name,
+                        **one_mount
+                    })
+        data['volumeMounts'] = mounts
+
         return data
 
 
