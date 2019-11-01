@@ -236,9 +236,14 @@ def test_deploy_config_obj(loo, test_temp_dir):
 
     assert data['apiVersion'] == 'extensions/v1beta1'
     assert data['kind'] == 'Deployment'
-    assert data['spec']['template']['spec']['volumes'][0]['secret']['secretName'] == 'local-conf'
+    assert data['spec']['template']['spec']['volumes'][0]['secret']['secretName'] in ('local-conf', 'cert')
     assert data['spec']['template']['spec']['terminationGracePeriodSeconds'] == 30
     assert data['something'] == {'foo': 'boo'}
+    assert data['spec']['template']['spec']['containers'][0]['volumeMounts'][0] == {
+        'mountPath': '/cert.pem',
+        'name': 'cert',
+        'subPath': 'tls.crt'
+    }
 
     data = json.loads(open(os.path.join(test_temp_dir, 'foo_cronjob.yaml'), 'r').read())
     assert data['apiVersion'] == 'batch/v1beta1'

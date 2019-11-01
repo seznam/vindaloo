@@ -15,7 +15,12 @@ DEPLOYMENT = Deployment(
             'secret': {
                 'secretName': "local-conf",
             }
-        }
+        },
+        'cert': {
+            'secret': {
+                'secretName': "cert",
+            }
+        },
     },
     containers={
         'foo': {
@@ -33,6 +38,18 @@ DEPLOYMENT = Deployment(
                         }
                     }
                 },
+            },
+            'volumeMounts': {
+                'cert': [
+                    {
+                        'mountPath': "/cert.pem",
+                        'subPath': "tls.crt",
+                    },
+                    {
+                        'mountPath': "/key.pem",
+                        'subPath': "tls.key",
+                    },
+                ],
             },
             'livenessProbe': {
                 'initialDelaySeconds': 30,
