@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='vindaloo',
-    version='3.2.0',
+    version='3.2.1',
     description='K8S deployer',
     long_description=long_description,
     long_description_content_type="text/markdown",
