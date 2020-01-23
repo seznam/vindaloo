@@ -12,10 +12,13 @@ class JsonSerializable:
 
 class PrepareDataMixin:
     def prepare_container_data(self, data, app):
-        data['image'] = '{registry}/{image}'.format(
-            registry=app.registry,
-            image=data['image'],
-        )
+
+        # prepend default registry if there is not one already
+        if len(data["image"].split("/")) == 1:
+            data['image'] = '{registry}/{image}'.format(
+                registry=app.registry,
+                image=data['image'],
+            )
 
         for key, val in data.get('env', {}).items():
             if not isinstance(val, dict):
