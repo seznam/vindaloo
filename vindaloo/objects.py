@@ -202,6 +202,7 @@ class Job(JsonSerializable, PrepareDataMixin):
             restart_policy='Never',
             volumes=None,
             annotations=None, metadata=None, labels=None,
+            backoff_limit=6,
             **kwargs
     ):
         self.name = name
@@ -217,6 +218,7 @@ class Job(JsonSerializable, PrepareDataMixin):
             'app': self.name,
         }
         self.additional_params = kwargs
+        self.backoff_limit = backoff_limit
 
     def to_json(self, app):
         res = {
@@ -246,7 +248,8 @@ class Job(JsonSerializable, PrepareDataMixin):
                         ],
                         'terminationGracePeriodSeconds': self.termination_grace_period,
                     }
-                }
+                },
+                'backoffLimit': self.backoff_limit,
             }
         }
 
