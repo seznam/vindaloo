@@ -13,8 +13,10 @@ class JsonSerializable:
 class PrepareDataMixin:
     def prepare_container_data(self, data, app):
 
-        # prepend default registry if there is not one already
-        if len(data["image"].split("/")) == 2:  # presuming smth/smth is without registry
+        # Prepend default registry if image does not starts with "!"
+        if data["image"].startswith("!"):
+            data["image"] = data["image"][1:]
+        else:
             data['image'] = '{registry}/{image}'.format(
                 registry=app.registry,
                 image=data['image'],
