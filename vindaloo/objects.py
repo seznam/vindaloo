@@ -14,7 +14,7 @@ class PrepareDataMixin:
     def prepare_container_data(self, data, app):
 
         # prepend default registry if there is not one already
-        if len(data["image"].split("/")) == 1:
+        if len(data["image"].split("/")) == 2:  # presuming smth/smth is without registry
             data['image'] = '{registry}/{image}'.format(
                 registry=app.registry,
                 image=data['image'],
