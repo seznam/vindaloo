@@ -248,6 +248,11 @@ def test_deploy_config_obj(loo, test_temp_dir):
     data = json.loads(open(os.path.join(test_temp_dir, 'foo_cronjob.yaml'), 'r').read())
     assert data['apiVersion'] == 'batch/v1beta1'
     assert data['kind'] == 'CronJob'
+    assert (
+        data['spec']['jobTemplate']['spec']['template']['spec']['containers'][0]['image']
+        ==
+        'registry.hub.docker.com/library/busybox:latest'
+    )
 
     data = json.loads(open(os.path.join(test_temp_dir, 'foo_job.yaml'), 'r').read())
     assert data['apiVersion'] == 'batch/v1'

@@ -79,7 +79,7 @@ CRONJOB = CronJob(
     },
     containers={
         'foo': {
-            'image': "{}:{}".format(CONFIG['image_name'], CONFIG['version']),
+            'image': "!registry.hub.docker.com/library/busybox:latest",
             'command': ['echo', 'x'],
             'env': {
                 'ENV': "stable",
