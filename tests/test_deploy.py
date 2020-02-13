@@ -219,10 +219,15 @@ def test_deploy_config_obj(loo, test_temp_dir):
     assert data['spec']['template']['spec']['volumes'][0]['secret']['secretName'] == 'local-conf'
     assert data['spec']['template']['spec']['terminationGracePeriodSeconds'] == 30
     assert data['something'] == {'foo': 'boo'}
+    assert data['spec']['template']['spec']['containers'][0]['image'] == 'foo-registry.com/test/foo:1.0.0'
     assert data['spec']['template']['spec']['containers'][0]['volumeMounts'][0] == {
         'mountPath': '/cert.pem',
         'name': 'cert',
         'subPath': 'tls.crt'
+    }
+    assert data['spec']['template']['spec']['containers'][0]['env'][0] == {
+        'name': 'ENV',
+        'value': 'dev'
     }
 
     data = json.loads(open(os.path.join(test_temp_dir, 'foo_cronjob.yaml'), 'r').read())
@@ -233,6 +238,11 @@ def test_deploy_config_obj(loo, test_temp_dir):
         ==
         'registry.hub.docker.com/library/busybox:latest'
     )
+    assert data['spec']['jobTemplate']['spec']['template']['spec']['containers'][0]['volumeMounts'][0] == {
+        'name': 'localconfig',
+        'mountPath': "/app.local.conf",
+        'subPath': "app.local.conf",
+    }
 
     data = json.loads(open(os.path.join(test_temp_dir, 'foo_job.yaml'), 'r').read())
     assert data['apiVersion'] == 'batch/v1'
@@ -244,3 +254,11 @@ def test_deploy_config_obj(loo, test_temp_dir):
     assert data['kind'] == 'Job'
     assert data['spec']['template']['metadata']['name'] == 'bar'
     assert data['spec']['template']['spec']['terminationGracePeriodSeconds'] == 30
+
+    data = json.loads(open(os.path.join(test_temp_dir, 'foo_service.yaml'), 'r').read())
+    assert data['spec']['type'] == 'NodePort'
+    assert data['spec']['ports'][0]['nodePort'] == 30666
+
+    data = json.loads(open(os.path.join(test_temp_dir, 'foo-labrador_service.yaml'), 'r').read())
+    assert data['spec']['ports'][0]['targetPort'] == 5001
+    assert data['spec']['loadBalancerIP'] == '10.1.1.1'

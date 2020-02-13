@@ -92,6 +92,12 @@ CRONJOB = CronJob(
                     }
                 },
             },
+            'volumeMounts': {
+                'localconfig': {
+                    'mountPath': "/app.local.conf",
+                    'subPath': "app.local.conf",
+                },
+            },
         },
     },
 )
