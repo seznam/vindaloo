@@ -5,7 +5,7 @@
 Požadavky
 ---------
 
-Vyžadován je Python 3.5 a vyšší.
+Vyžadován je Python 3.6 a vyšší.
 
 
 Instalace
