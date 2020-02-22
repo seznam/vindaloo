@@ -1,11 +1,17 @@
+import re
+
 from setuptools import setup
+
+
+with open("vindaloo/vindaloo.py", "rt", encoding="utf8") as f:
+    version = re.search(r'VERSION = \'(.*?)\'', f.read()).group(1)
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
     name='vindaloo',
-    version='3.3.0',
+    version=version,
     description='K8S deployer',
     long_description=long_description,
     long_description_content_type="text/markdown",
