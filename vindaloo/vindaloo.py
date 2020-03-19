@@ -926,6 +926,8 @@ class Vindaloo:
             self.collect_versions()
         elif command == "deploy":
             self.k8s_deploy()
+        elif command == "deploy-dir":
+            self.k8s_deploy()
         elif command == "kubeenv":
             self.k8s_select_env()
         elif command == "build-push-deploy":
@@ -1030,7 +1032,7 @@ class Vindaloo:
             nargs='?'
         )
 
-        deploy_parser = subparsers.add_parser('deploy', help='nasadi zmeny do clusteru')
+        deploy_parser = subparsers.add_parser('deploy', help='Deploy project to cluster')
         deploy_parser.add_argument(
             '--watch', help='Wait for rollout of new version',
             action='store_true'
@@ -1048,6 +1050,22 @@ class Vindaloo:
             '--apply-output-dir',
             help="Instead of apply save generated yaml files to specified directory",
             default=None
+        )
+
+        deploy_dir_parser = subparsers.add_parser('deploy-dir', help='prepare deployment files')
+        deploy_dir_parser.add_argument(
+            'environment', help='environment for deployment',
+            choices=environments
+        )
+        deploy_dir_parser.add_argument(
+            'cluster', help='cluster name ({})'.format(clusters_str),
+            choices=clusters,
+            nargs='?'
+        )
+        deploy_dir_parser.add_argument(
+            '--apply-output-dir',
+            help="Instead of apply save generated yaml files to specified directory",
+            required=True
         )
 
         bpd_parser = subparsers.add_parser('build-push-deploy', help='makes all three steps in one')
