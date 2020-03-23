@@ -176,7 +176,7 @@ def test_deploy_configmap(loo):
 def test_deploy_to_outdir(loo, test_temp_dir):
     # fake arguments
 
-    sys.argv = ['vindaloo', '--noninteractive', 'deploy', '--apply-output-dir={}'.format(test_temp_dir), 'dev', 'cluster1']
+    sys.argv = ['vindaloo', '--noninteractive', 'deploy-dir', '--apply-output-dir={}'.format(test_temp_dir), 'dev', 'cluster1']
 
     loo.cmd.return_value.stdout = b'{}'
 
@@ -184,17 +184,8 @@ def test_deploy_to_outdir(loo, test_temp_dir):
         loo.main()
 
     # check arguments docker and kubectl was called with
-    assert len(loo.cmd.call_args_list) == 2
-    auth_cmd = loo.cmd.call_args_list[0][0][0]
-    config_map_create_cmd = loo.cmd.call_args_list[1][0][0]
-
-    assert auth_cmd == [
-        'kubectl',
-        'auth',
-        'can-i',
-        'get',
-        'deployment'
-    ]
+    assert len(loo.cmd.call_args_list) == 1
+    config_map_create_cmd = loo.cmd.call_args_list[0][0][0]
 
     assert config_map_create_cmd[:4] == [
         'kubectl',
@@ -208,7 +199,7 @@ def test_deploy_to_outdir(loo, test_temp_dir):
 
 def test_deploy_config_obj(loo, test_temp_dir):
     # fake arguments
-    sys.argv = ['vindaloo', '--noninteractive', 'deploy', '--apply-output-dir={}'.format(test_temp_dir), 'dev', 'cluster1']
+    sys.argv = ['vindaloo', '--noninteractive', 'deploy-dir', '--apply-output-dir={}'.format(test_temp_dir), 'dev', 'cluster1']
 
     loo.cmd.return_value.stdout.decode.return_value.split.return_value = [
         'foo-registry.com/test/foo:1.0.0',
@@ -219,18 +210,6 @@ def test_deploy_config_obj(loo, test_temp_dir):
         loo.main()
 
     assert vindaloo.app.args.cluster == 'cluster1'
-
-    # check arguments docker and kubectl was called with
-    assert len(loo.cmd.call_args_list) == 1
-    auth_cmd = loo.cmd.call_args_list[0][0][0]
-
-    assert auth_cmd == [
-        'kubectl',
-        'auth',
-        'can-i',
-        'get',
-        'deployment'
-    ]
 
     data = json.loads(open(os.path.join(test_temp_dir, 'foo_deployment.yaml'), 'r').read())
 

@@ -36,6 +36,16 @@ NONE = "base"
 K8S_OBJECT_TYPES = [
     "configmap", "secret", "podpreset", "deployment", "service", "ingres", "cronjob", "job"
 ]
+K8S_OBJECT_TYPES_YAML_PREFIX = {
+    "configmap": "1",
+    "secret": "2",
+    "podpreset": "3",
+    "deployment": "4",
+    "service": "5",
+    "ingres": "6",
+    "cronjob": "7",
+    "job": "8",
+}
 SUCCESS_REPLY = ("Y", "y", "a", "A")
 ENVS_CONFIG_NAME = 'vindaloo_conf'
 NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy', 'edit-secret')
@@ -232,9 +242,17 @@ class Vindaloo:
             return True
         elif self.args.apply_output_dir:
             os.makedirs(self.args.apply_output_dir, exist_ok=True)
+
+            if self.args.priority_prefix:
+                prefix_ = K8S_OBJECT_TYPES_YAML_PREFIX.get(object_type)
+                if prefix_:
+                    prefix_ += "_"
+            else:
+                prefix_ = ""
+
             dest_filename = os.path.join(
                 self.args.apply_output_dir,
-                "{}_{}.yaml".format(name, object_type)
+                "{}{}_{}.yaml".format(prefix_, name, object_type)
             )
             shutil.copy(filename, dest_filename)
             self._out("{} created.".format(dest_filename))
@@ -1046,11 +1064,6 @@ class Vindaloo:
             choices=clusters,
             nargs='?'
         )
-        deploy_parser.add_argument(
-            '--apply-output-dir',
-            help="Instead of apply save generated yaml files to specified directory",
-            default=None
-        )
 
         deploy_dir_parser = subparsers.add_parser('deploy-dir', help='prepare deployment files')
         deploy_dir_parser.add_argument(
@@ -1066,6 +1079,11 @@ class Vindaloo:
             '--apply-output-dir',
             help="Instead of apply save generated yaml files to specified directory",
             required=True
+        )
+        deploy_dir_parser.add_argument(
+            '--priority-prefix', help='Add priority prefix to manifest names .. for example: 1_xxx_configmap.yaml',
+            action='store_true',
+            default=False
         )
 
         bpd_parser = subparsers.add_parser('build-push-deploy', help='makes all three steps in one')
