@@ -51,7 +51,26 @@ class PrepareDataMixin:
         return data
 
 
-class Deployment(JsonSerializable, PrepareDataMixin):
+class CustomizeManifestMixin:
+    def __init__(self, *args, **kwargs):
+        self.customizations = []
+
+    def apply_customizations(self, json_dict):
+
+        if not self.customizations:
+            params_ = getattr(self, "additional_params", {})
+            self.customizations = params_.pop("customization", [])
+
+        for path, value in self.customizations:
+            self.get_path(path, json_dict)[path[-1]] = value
+
+    def get_path(self, path, json_dict):
+        if len(path) == 1:
+            return json_dict
+        return self.get_path(path[1:], json_dict.setdefault(path[0], {}))
+
+
+class Deployment(CustomizeManifestMixin, JsonSerializable, PrepareDataMixin):
     obj_type = "deployment"
     api_version = "extensions/v1beta1"
 
@@ -74,6 +93,7 @@ class Deployment(JsonSerializable, PrepareDataMixin):
             'app': self.name,
         }
         self.additional_params = kwargs
+        super().__init__(**kwargs)
 
     def prepare_container_data(self, data, app):
         data = super().prepare_container_data(data, app)
@@ -115,12 +135,14 @@ class Deployment(JsonSerializable, PrepareDataMixin):
             }
         }
 
+        self.apply_customizations(res)
+
         res.update(self.additional_params)
 
         return json.dumps(res, indent=4)
 
 
-class CronJob(JsonSerializable, PrepareDataMixin):
+class CronJob(CustomizeManifestMixin, JsonSerializable, PrepareDataMixin):
     obj_type = "cronjob"
     api_version = "batch/v1beta1"
 
@@ -148,6 +170,7 @@ class CronJob(JsonSerializable, PrepareDataMixin):
             'app': self.name,
         }
         self.additional_params = kwargs
+        super().__init__(**kwargs)
 
     def to_json(self, app):
         res = {
@@ -187,12 +210,14 @@ class CronJob(JsonSerializable, PrepareDataMixin):
             }
         }
 
+        self.apply_customizations(res)
+
         res.update(self.additional_params)
 
         return json.dumps(res, indent=4)
 
 
-class Job(JsonSerializable, PrepareDataMixin):
+class Job(CustomizeManifestMixin, JsonSerializable, PrepareDataMixin):
     obj_type = "job"
     api_version = "batch/v1"
 
@@ -219,6 +244,7 @@ class Job(JsonSerializable, PrepareDataMixin):
         }
         self.additional_params = kwargs
         self.backoff_limit = backoff_limit
+        super().__init__(**kwargs)
 
     def to_json(self, app):
         res = {
@@ -253,12 +279,14 @@ class Job(JsonSerializable, PrepareDataMixin):
             }
         }
 
+        self.apply_customizations(res)
+
         res.update(self.additional_params)
 
         return json.dumps(res, indent=4)
 
 
-class Service(JsonSerializable):
+class Service(CustomizeManifestMixin, JsonSerializable):
     obj_type = "service"
     api_version = "v1"
 
@@ -280,6 +308,7 @@ class Service(JsonSerializable):
         }
         self.metadata['annotations'] = self.annotations or {}
         self.additional_params = kwargs
+        super().__init__(**kwargs)
 
     def to_json(self, app):
         res = {
@@ -302,6 +331,8 @@ class Service(JsonSerializable):
             res['spec']['loadBalancerIP'] = self.load_balancer_ip
         if self.cluster_ip:
             res['spec']['clusterIP'] = self.cluster_ip
+
+        self.apply_customizations(res)
 
         res.update(self.additional_params)
 
