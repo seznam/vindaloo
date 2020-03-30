@@ -53,14 +53,10 @@ class PrepareDataMixin:
 
 class CustomizeManifestMixin:
     def __init__(self, *args, **kwargs):
-        self.customizations = []
+        params_ = getattr(self, "additional_params", {})
+        self.customizations = params_.pop("customization", [])
 
     def apply_customizations(self, json_dict):
-
-        if not self.customizations:
-            params_ = getattr(self, "additional_params", {})
-            self.customizations = params_.pop("customization", [])
-
         for path, value in self.customizations:
             self.get_path(path, json_dict)[path[-1]] = value
 
