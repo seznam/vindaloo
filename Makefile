@@ -19,7 +19,7 @@ coverage:
 clean:
 	sudo find . -name '__pycache__' -exec rm -rf {} +;
 	sudo find . -name '*.pyc' -exec rm -rf {} +;
-	-rm -r build dist
+	-rm -rf build dist
 
 install-dev:
 	pip install argcomplete pex pystache typing
@@ -31,6 +31,6 @@ upload:
 	python -m twine upload dist/*
 
 %-alpine:
-	docker run --rm -v $(PWD):/x python:$@ sh -c "pip install argcomplete pytest pystache typing; cd /x; pytest tests"
+	docker run --rm -v $(PWD):/x python:$@ sh -c "pip install pipenv; cd /x; pipenv install --dev; pipenv run pytest tests"
 
 .PHONY: all cache pex-local pex-in-docker test coverage clean test-all upload
