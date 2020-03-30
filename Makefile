@@ -19,6 +19,7 @@ coverage:
 clean:
 	sudo find . -name '__pycache__' -exec rm -rf {} +;
 	sudo find . -name '*.pyc' -exec rm -rf {} +;
+	rm -r build dist
 
 install-dev:
 	pip install argcomplete pex pystache typing
