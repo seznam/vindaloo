@@ -3,7 +3,7 @@ from typing import Optional
 
 
 class JsonSerializable:
-    NAME: Optional[str] = None
+    NAME = "undefined"
 
     def serialize(self, app):
         raise NotImplementedError()
@@ -15,49 +15,49 @@ class JsonSerializable:
         return str(f'{self.NAME}(**{self.serialize()})')
 
 
-class DictSerializable(JsonSerializable):
+class Dict(JsonSerializable):
     __slots__ = ('childs',)
 
-    NAME = 'DictSerializable'
+    NAME = 'Dict'
 
     def __init__(self, **kwargs):
-        self.childs = kwargs
+        self.children = kwargs
 
     def serialize(self, app=None):
         return {
-            key: val.serialize(app) if isinstance(val, DictSerializable) else val
-            for key, val in self.childs.items()
+            key: val.serialize(app) if isinstance(val, Dict) else val
+            for key, val in self.children.items()
         }
 
     def __getattr__(self, key):
-        if key in self.childs:
-            return self.childs[key]
+        if key in self.children:
+            return self.children[key]
         raise AttributeError(f'Key `{key}` not present')
 
     def __setattr__(self, key, val):
-        if key in ('childs', 'NAME'):
+        if key in ('children', 'NAME'):
             super().__setattr__(key, val)
         else:
-            self.childs[key] = val
+            self.children[key] = val
 
     def __getitem__(self, key):
         return self.__getattr__(key)
 
     def __setitem__(self, key, value):
-        self.childs[key] = value
+        self.children[key] = value
 
     def __deepcopy__(self, memo):
-        return DictSerializable(**copy.deepcopy(self.childs, memo))
+        return Dict(**copy.deepcopy(self.children, memo))
 
 
-class ListSerializable(DictSerializable):
-    NAME = 'ListSerializable'
+class List(Dict):
+    NAME = 'List'
 
     def serialize(self, app=None):
         items = []
 
-        for key, val in self.childs.items():
-            if isinstance(val, DictSerializable):
+        for key, val in self.children.items():
+            if isinstance(val, Dict):
                 items.append({
                     'name': key,
                     **val.serialize(app),
@@ -81,7 +81,7 @@ class ListSerializable(DictSerializable):
         return items
 
 
-class Container(DictSerializable):
+class Container(Dict):
     NAME = 'Container'
 
     def serialize(self, app=None):
@@ -99,16 +99,16 @@ class Container(DictSerializable):
         return data
 
 
-class PrepareContainersMixin:
+class ContainersMixin:
     def _prepare_containers(self, containers):
         for key, val in containers.items():
             if 'volumeMounts' in val:
-                val['volumeMounts'] = ListSerializable(**val['volumeMounts'])
+                val['volumeMounts'] = List(**val['volumeMounts'])
             if 'env' in val:
-                val['env'] = ListSerializable(**val['env'])
+                val['env'] = List(**val['env'])
             containers[key] = Container(**val)
 
-        return ListSerializable(**containers)
+        return List(**containers)
 
 
 class KubernetesManifestMixin(JsonSerializable):
@@ -129,7 +129,7 @@ class KubernetesManifestMixin(JsonSerializable):
         return res
 
 
-class Deployment(PrepareContainersMixin, KubernetesManifestMixin):
+class Deployment(ContainersMixin, KubernetesManifestMixin):
     obj_type = "deployment"
     api_version = "apps/v1"
 
@@ -143,21 +143,21 @@ class Deployment(PrepareContainersMixin, KubernetesManifestMixin):
             'app': name,
         }
 
-        self.spec = DictSerializable(
+        self.spec = Dict(
             replicas=replicas,
-            selector=DictSerializable(
-                matchLabels=DictSerializable(
+            selector=Dict(
+                matchLabels=Dict(
                     app=name,
                 ),
             ),
-            template=DictSerializable(
-                metadata=DictSerializable(
+            template=Dict(
+                metadata=Dict(
                     name=name,
                     labels=labels,
                     annotations=annotations,
                 ),
-                spec=DictSerializable(
-                    volumes=ListSerializable(**volumes),
+                spec=Dict(
+                    volumes=List(**volumes),
                     containers=self._prepare_containers(containers),
                     terminationGracePeriodSeconds=termination_grace_period,
                 ),
@@ -165,7 +165,7 @@ class Deployment(PrepareContainersMixin, KubernetesManifestMixin):
         )
 
 
-class CronJob(PrepareContainersMixin, KubernetesManifestMixin):
+class CronJob(ContainersMixin, KubernetesManifestMixin):
     obj_type = "cronjob"
     api_version = "batch/v1beta1"
 
@@ -182,19 +182,19 @@ class CronJob(PrepareContainersMixin, KubernetesManifestMixin):
             'app': name,
         }
 
-        self.spec = DictSerializable(
+        self.spec = Dict(
             schedule=schedule,
             concurrencyPolicy=concurrency_policy,
-            jobTemplate=DictSerializable(
-                spec=DictSerializable(
-                    template=DictSerializable(
-                        metadata=DictSerializable(
+            jobTemplate=Dict(
+                spec=Dict(
+                    template=Dict(
+                        metadata=Dict(
                             name=name,
                             labels=labels,
                             annotations=annotations,
                         ),
-                        spec=DictSerializable(
-                            volumes=ListSerializable(**volumes),
+                        spec=Dict(
+                            volumes=List(**volumes),
                             containers=self._prepare_containers(containers),
                             terminationGracePeriodSeconds=termination_grace_period,
                             restartPolicy=restart_policy,
@@ -215,7 +215,7 @@ class CronJob(PrepareContainersMixin, KubernetesManifestMixin):
         return res
 
 
-class Job(PrepareContainersMixin, KubernetesManifestMixin):
+class Job(ContainersMixin, KubernetesManifestMixin):
     obj_type = "job"
     api_version = "batch/v1"
 
@@ -231,15 +231,15 @@ class Job(PrepareContainersMixin, KubernetesManifestMixin):
             'app': name,
         }
 
-        self.spec = DictSerializable(
-            template=DictSerializable(
-                metadata=DictSerializable(
+        self.spec = Dict(
+            template=Dict(
+                metadata=Dict(
                     name=name,
                     labels=labels,
                     annotations=annotations,
                 ),
-                spec=DictSerializable(
-                    volumes=ListSerializable(**volumes),
+                spec=Dict(
+                    volumes=List(**volumes),
                     containers=self._prepare_containers(containers),
                     terminationGracePeriodSeconds=termination_grace_period,
                     restartPolicy=restart_policy,
@@ -264,12 +264,12 @@ class Service(KubernetesManifestMixin):
 
         self.metadata['annotations'] = annotations or {}
 
-        self.spec = DictSerializable(
-            metadata=DictSerializable(
+        self.spec = Dict(
+            metadata=Dict(
                 name=name,
             ),
             type=service_type,
-            ports=ListSerializable(**ports),
+            ports=List(**ports),
             selector=selector,
         )
 
