@@ -229,6 +229,8 @@ def test_deploy_config_obj(loo, test_temp_dir):
         'name': 'ENV',
         'value': 'dev'
     }
+    assert data['metadata']['annotations']['deploy-cluster'] == 'cluster2'
+    assert data['spec']['template']['metadata']['annotations']['log-retention'] == '3w'
 
     data = json.loads(open(os.path.join(test_temp_dir, 'foo_cronjob.yaml'), 'r').read())
     assert data['apiVersion'] == 'batch/v1beta1'

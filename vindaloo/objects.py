@@ -112,11 +112,12 @@ class ContainersMixin:
 
 
 class KubernetesManifestMixin(JsonSerializable):
-    def __init__(self, name, metadata):
+    def __init__(self, name, metadata, annotations):
         self.name = name
         self.metadata = metadata or {
             'name': name,
         }
+        self.metadata.setdefault('annotations', annotations or {})
 
     def serialize(self, app):
         res = {
@@ -137,8 +138,9 @@ class Deployment(ContainersMixin, KubernetesManifestMixin):
             self, name, containers,
             volumes=None, replicas=1, termination_grace_period=30,
             annotations=None, metadata=None, labels=None,
+            spec_annotations=None,
     ):
-        super().__init__(name, metadata)
+        super().__init__(name, metadata, annotations)
         labels = labels or {
             'app': name,
         }
@@ -154,7 +156,7 @@ class Deployment(ContainersMixin, KubernetesManifestMixin):
                 metadata=Dict(
                     name=name,
                     labels=labels,
-                    annotations=annotations,
+                    annotations=spec_annotations,
                 ),
                 spec=Dict(
                     volumes=List(**volumes),
@@ -176,8 +178,9 @@ class CronJob(ContainersMixin, KubernetesManifestMixin):
             concurrency_policy='Allow',
             volumes=None,
             annotations=None, metadata=None, labels=None,
+            spec_annotations=None,
     ):
-        super().__init__(name, metadata)
+        super().__init__(name, metadata, annotations)
         labels = labels or {
             'app': name,
         }
@@ -191,7 +194,7 @@ class CronJob(ContainersMixin, KubernetesManifestMixin):
                         metadata=Dict(
                             name=name,
                             labels=labels,
-                            annotations=annotations,
+                            annotations=spec_annotations,
                         ),
                         spec=Dict(
                             volumes=List(**volumes),
@@ -225,8 +228,9 @@ class Job(ContainersMixin, KubernetesManifestMixin):
             restart_policy='Never',
             volumes=None,
             annotations=None, metadata=None, labels=None,
+            spec_annotations=None,
     ):
-        super().__init__(name, metadata)
+        super().__init__(name, metadata, annotations)
         labels = labels or {
             'app': name,
         }
@@ -236,7 +240,7 @@ class Job(ContainersMixin, KubernetesManifestMixin):
                 metadata=Dict(
                     name=name,
                     labels=labels,
-                    annotations=annotations,
+                    annotations=spec_annotations,
                 ),
                 spec=Dict(
                     volumes=List(**volumes),
@@ -257,12 +261,10 @@ class Service(KubernetesManifestMixin):
             service_type='ClusterIP', load_balancer_ip=None, cluster_ip=None,
             annotations=None, metadata=None, labels=None,
     ):
-        super().__init__(name, metadata)
+        super().__init__(name, metadata, annotations)
         labels = labels or {
             'app': name,
         }
-
-        self.metadata['annotations'] = annotations or {}
 
         self.spec = Dict(
             metadata=Dict(

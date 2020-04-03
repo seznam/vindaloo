@@ -62,6 +62,8 @@ DEPLOYMENT = Deployment(
             },
         },
     },
+    annotations={"deploy-cluster": "cluster1"},
+    spec_annotations={"log-retention": "3w"}
 )
 DEPLOYMENT.spec.something = {'foo': 'boo'}
 
