@@ -27,6 +27,10 @@ DEPLOYMENT = Deployment(
             'image': "{}:{}".format(CONFIG['image_name'], CONFIG['version']),
             'ports': {
                 'proxy': 5001,
+                'server': {
+                    'protocol': 'UDP',
+                    'containerPort': 5000,
+                }
             },
             'env': {
                 'ENV': "stable",

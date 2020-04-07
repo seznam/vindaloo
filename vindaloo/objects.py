@@ -57,6 +57,7 @@ class Dict(JsonSerializable):
 
 class List(Dict):
     NAME = 'List'
+    VALUE_KEY = 'value'
 
     def serialize(self, app=None):
         items = []
@@ -81,9 +82,14 @@ class List(Dict):
             else:
                 items.append({
                     'name': key,
-                    'value': val,
+                    self.VALUE_KEY: val,
                 })
         return items
+
+
+class PortsList(List):
+    NAME = 'PortsList'
+    VALUE_KEY = 'containerPort'
 
 
 class Container(Dict):
@@ -111,6 +117,8 @@ class ContainersMixin:
                 val['volumeMounts'] = List(**val['volumeMounts'])
             if 'env' in val:
                 val['env'] = List(**val['env'])
+            if 'ports' in val:
+                val['ports'] = PortsList(**val['ports'])
             containers[key] = Container(**val)
 
         return List(**containers)

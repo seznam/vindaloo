@@ -229,6 +229,15 @@ def test_deploy_config_obj(loo, test_temp_dir):
         'name': 'ENV',
         'value': 'dev'
     }
+    assert data['spec']['template']['spec']['containers'][0]['ports'][0] == {
+        'name': 'proxy',
+        'containerPort': 5001,
+    }
+    assert data['spec']['template']['spec']['containers'][0]['ports'][1] == {
+        'name': 'server',
+        'containerPort': 5000,
+        'protocol': 'UDP',
+    }
     assert data['metadata']['annotations']['deploy-cluster'] == 'cluster2'
     assert data['spec']['template']['metadata']['annotations']['log-retention'] == '3w'
 
