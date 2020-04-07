@@ -7,6 +7,18 @@ CONFIG = {
     'image_name': 'test/foo',
 }
 
+ENV = {
+    'ENV': "stable",
+    'DB_PASSWORD': {
+        'valueFrom': {
+            'secretKeyRef': {
+                'name': 'db-master',
+                'key': 'password',
+            }
+        }
+    },
+}
+
 DEPLOYMENT = Deployment(
     name="foo",
     replicas=2,
@@ -32,17 +44,7 @@ DEPLOYMENT = Deployment(
                     'containerPort': 5000,
                 }
             },
-            'env': {
-                'ENV': "stable",
-                'DB_PASSWORD': {
-                    'valueFrom': {
-                        'secretKeyRef': {
-                            'name': 'db-master',
-                            'key': 'password',
-                        }
-                    }
-                },
-            },
+            'env': ENV,
             'volumeMounts': {
                 'cert': [
                     {

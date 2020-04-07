@@ -23,7 +23,7 @@ class JsonSerializable:
         return copy.deepcopy(self)
 
     def __str__(self):
-        return str(f'{self.NAME}(**{self.serialize()})')
+        return str(f'{self.NAME}({self.serialize()})')
 
     def __setattr__(self, key, value):
         if key not in self.__slots__:
@@ -36,8 +36,13 @@ class Dict(JsonSerializable):
 
     NAME = 'Dict'
 
-    def __init__(self, **kwargs):
-        self.children = kwargs
+    def __init__(self, *args, **kwargs):
+        if kwargs:
+            self.children = kwargs
+        elif args:
+            self.children = args[0]
+        else:
+            self.children = {}
 
     def serialize(self, app=None):
         return {
@@ -63,7 +68,7 @@ class Dict(JsonSerializable):
         self.children[key] = value
 
     def __deepcopy__(self, memo):
-        return self.__class__(**copy.deepcopy(self.children, memo))
+        return self.__class__(copy.deepcopy(self.children, memo))
 
 
 class List(Dict):
@@ -125,14 +130,14 @@ class ContainersMixin:
     def _prepare_containers(self, containers):
         for key, val in containers.items():
             if 'volumeMounts' in val:
-                val['volumeMounts'] = List(**val['volumeMounts'])
+                val['volumeMounts'] = List(val['volumeMounts'])
             if 'env' in val:
-                val['env'] = List(**val['env'])
+                val['env'] = List(val['env'])
             if 'ports' in val:
-                val['ports'] = PortsList(**val['ports'])
-            containers[key] = Container(**val)
+                val['ports'] = PortsList(val['ports'])
+            containers[key] = Container(val)
 
-        return List(**containers)
+        return List(containers)
 
 
 class KubernetesManifestMixin(JsonSerializable):
@@ -185,7 +190,7 @@ class Deployment(ContainersMixin, KubernetesManifestMixin):
                     annotations=spec_annotations,
                 ),
                 spec=Dict(
-                    volumes=List(**volumes),
+                    volumes=List(volumes),
                     containers=self._prepare_containers(containers),
                     terminationGracePeriodSeconds=termination_grace_period,
                 ),
@@ -223,7 +228,7 @@ class CronJob(ContainersMixin, KubernetesManifestMixin):
                             annotations=spec_annotations,
                         ),
                         spec=Dict(
-                            volumes=List(**volumes),
+                            volumes=List(volumes),
                             containers=self._prepare_containers(containers),
                             terminationGracePeriodSeconds=termination_grace_period,
                             restartPolicy=restart_policy,
@@ -269,7 +274,7 @@ class Job(ContainersMixin, KubernetesManifestMixin):
                     annotations=spec_annotations,
                 ),
                 spec=Dict(
-                    volumes=List(**volumes),
+                    volumes=List(volumes),
                     containers=self._prepare_containers(containers),
                     terminationGracePeriodSeconds=termination_grace_period,
                     restartPolicy=restart_policy,
@@ -294,7 +299,7 @@ class Service(KubernetesManifestMixin):
 
         self.spec = Dict(
             type=service_type,
-            ports=List(**ports),
+            ports=List(ports),
             selector=selector,
         )
 
