@@ -14,9 +14,14 @@ class JsonSerializable:
     def __str__(self):
         return str(f'{self.NAME}(**{self.serialize()})')
 
+    def __setattr__(self, key, value):
+        if key not in self.__slots__:
+            raise NotImplementedError(f"Property {key} is not supported")
+        super().__setattr__(key, value)
+
 
 class Dict(JsonSerializable):
-    __slots__ = ('childs',)
+    __slots__ = ('children',)
 
     NAME = 'Dict'
 
@@ -112,6 +117,8 @@ class ContainersMixin:
 
 
 class KubernetesManifestMixin(JsonSerializable):
+    __slots__ = ('name', 'metadata', 'spec')
+
     def __init__(self, name, metadata, annotations):
         self.name = name
         self.metadata = metadata or {
