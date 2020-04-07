@@ -52,7 +52,7 @@ class Dict(JsonSerializable):
         self.children[key] = value
 
     def __deepcopy__(self, memo):
-        return Dict(**copy.deepcopy(self.children, memo))
+        return self.__class__(**copy.deepcopy(self.children, memo))
 
 
 class List(Dict):
