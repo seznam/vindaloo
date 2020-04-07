@@ -293,9 +293,6 @@ class Service(KubernetesManifestMixin):
         }
 
         self.spec = Dict(
-            metadata=Dict(
-                name=name,
-            ),
             type=service_type,
             ports=List(**ports),
             selector=selector,
