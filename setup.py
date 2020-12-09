@@ -21,7 +21,6 @@ setup(
     install_requires=[
         'argcomplete>=1.9.5',
         'pystache',
-        'typing',
     ],
     entry_points={
         'console_scripts': [
