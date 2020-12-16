@@ -16,7 +16,7 @@ __all__ = (
 class JsonSerializable:
     NAME = "undefined"
 
-    def serialize(self, app):
+    def serialize(self, app=None):
         raise NotImplementedError()
 
     def clone(self):
@@ -145,16 +145,18 @@ class KubernetesManifestMixin(JsonSerializable):
 
     def __init__(self, name, metadata, annotations):
         self.name = name
-        self.metadata = metadata or {
+        metadata = metadata or {
             'name': name,
         }
-        self.metadata.setdefault('annotations', annotations or {})
+        metadata.setdefault('annotations', Dict(annotations or {}))
+        self.metadata = Dict(metadata)
+        self.spec = Dict()
 
-    def serialize(self, app):
+    def serialize(self, app=None):
         res = {
             'apiVersion': self.api_version,
             'kind': self.obj_type.capitalize(),
-            'metadata': self.metadata,
+            'metadata': self.metadata.serialize(app),
             'spec': self.spec.serialize(app)
         }
 
@@ -238,11 +240,11 @@ class CronJob(ContainersMixin, KubernetesManifestMixin):
             )
         )
 
-    def serialize(self, app):
+    def serialize(self, app=None):
         res = {
             'apiVersion': self.api_version,
             'kind': "CronJob",
-            'metadata': self.metadata,
+            'metadata': self.metadata.serialize(app),
             'spec': self.spec.serialize(app)
         }
 
