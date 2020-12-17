@@ -7,7 +7,6 @@ import shutil
 from importlib import import_module
 import json
 import os
-import pkg_resources
 import ssl
 import subprocess
 import sys

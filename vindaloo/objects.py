@@ -1,5 +1,5 @@
 import copy
-from typing import Optional
+from typing import Union, Dict as DictType, List as ListType
 
 __all__ = (
     'Dict',
@@ -40,7 +40,7 @@ class Dict(JsonSerializable):
         if kwargs:
             self.children = kwargs
         elif args:
-            self.children = args[0]
+            self.children = args[0] or {}
         else:
             self.children = {}
 
@@ -51,14 +51,17 @@ class Dict(JsonSerializable):
         }
 
     def __getattr__(self, key):
-        if key in self.children:
-            return self.children[key]
-        raise AttributeError(f'Key `{key}` not present')
+        if key not in self.children:
+            self.children[key] = Dict()
+        return self.children[key]
 
     def __setattr__(self, key, val):
         if key in ('children', 'NAME'):
             super().__setattr__(key, val)
         else:
+            if isinstance(val, dict):
+                val = Dict(val)
+
             self.children[key] = val
 
     def __getitem__(self, key):
@@ -111,6 +114,12 @@ class PortsList(List):
 class Container(Dict):
     NAME = 'Container'
 
+    volumeMounts: Dict
+    env: Dict
+    ports: Dict
+    image: str
+    command: Union[str, ListType[str]]
+
     def serialize(self, app=None):
         data = super().serialize(app)
 
@@ -127,7 +136,9 @@ class Container(Dict):
 
 
 class ContainersMixin:
-    def _prepare_containers(self, containers):
+    @staticmethod
+    def _prepare_containers(containers):
+        containers = containers or {}
         for key, val in containers.items():
             if 'volumeMounts' in val:
                 val['volumeMounts'] = List(val['volumeMounts'])
@@ -143,14 +154,12 @@ class ContainersMixin:
 class KubernetesManifestMixin(JsonSerializable):
     __slots__ = ('name', 'metadata', 'spec')
 
-    def __init__(self, name, metadata, annotations):
-        self.name = name
-        metadata = metadata or {
-            'name': name,
-        }
+    def __init__(self, metadata, annotations):
+        metadata = metadata or {}
         metadata.setdefault('annotations', Dict(annotations or {}))
         self.metadata = Dict(metadata)
         self.spec = Dict()
+        self.name = ''
 
     def serialize(self, app=None):
         res = {
@@ -163,33 +172,54 @@ class KubernetesManifestMixin(JsonSerializable):
         return res
 
 
+class Metadata(Dict):
+    name: str
+    annotations: Dict
+
+
+class TemplateMetadata(Dict):
+    name: str
+    labels: Dict
+    annotations: Dict
+
+
+class TemplateSpec(Dict):
+    volumes: List
+    containers: DictType[str, Container]
+    terminationGracePeriodSeconds: int
+
+
+class DeploymentTemplate(Dict):
+    metadata: TemplateMetadata
+    spec: TemplateSpec
+
+
+class DeploymentSpec(Dict):
+    template: DeploymentTemplate
+    replicas: int
+
+
 class Deployment(ContainersMixin, KubernetesManifestMixin):
     obj_type = "deployment"
     api_version = "apps/v1"
 
-    def __init__(
-            self, name, containers,
-            volumes=None, replicas=1, termination_grace_period=30,
-            annotations=None, metadata=None, labels=None,
-            spec_annotations=None,
-    ):
-        super().__init__(name, metadata, annotations)
-        labels = labels or {
-            'app': name,
-        }
+    metadata: Metadata
+    spec: DeploymentSpec
 
-        self.spec = Dict(
+    def __init__(
+            self, name='', containers: DictType[str, dict] = None,
+            volumes: DictType[str, dict] = None, replicas=1, termination_grace_period=30,
+            annotations: DictType[str, str] = None, metadata=None, labels=None,
+            spec_annotations: DictType[str, str] = None,
+    ):
+        super().__init__(metadata, annotations)
+
+        self.spec = DeploymentSpec(
             replicas=replicas,
-            selector=Dict(
-                matchLabels=Dict(
-                    app=name,
-                ),
-            ),
             template=Dict(
                 metadata=Dict(
-                    name=name,
-                    labels=labels,
-                    annotations=spec_annotations,
+                    labels=Dict(labels),
+                    annotations=Dict(spec_annotations),
                 ),
                 spec=Dict(
                     volumes=List(volumes),
@@ -198,27 +228,70 @@ class Deployment(ContainersMixin, KubernetesManifestMixin):
                 ),
             )
         )
+        self.set_name(name)
+
+    def set_name(self, name):
+        """
+        Sets name in:
+        * metadata.name
+        * metadata.annotations.name
+        * spec.template.metadata.name
+        * spec.template.metadata.labels.app
+        """
+        self.name = name
+        self.metadata.name = name
+        self.metadata.annotations.name = name
+        self.spec.template.metadata.name = name
+        self.spec.template.metadata.labels.app = name
+        self.spec.selector.matchLabels.app = name
+
+
+class JobTemplateSpec(Dict):
+    restartPolicy: str
+    terminationGracePeriodSeconds: int
+    containers: DictType[str, Container]
+    volumes: List
+
+
+class JobTemplate(Dict):
+    spec: JobTemplateSpec
+    metadata: TemplateMetadata
+
+
+class CronJobTemplateSpec(Dict):
+    template: JobTemplate
+
+
+class CronJobTemplate(Dict):
+    spec: CronJobTemplateSpec
+    metadata: Dict
+
+
+class CronJobSpec(Dict):
+    jobTemplate: CronJobTemplate
+    schedule: str
+    concurrencyPolicy: str
 
 
 class CronJob(ContainersMixin, KubernetesManifestMixin):
     obj_type = "cronjob"
     api_version = "batch/v1beta1"
 
+    metadata: Metadata
+    spec: CronJobSpec
+
     def __init__(
-            self, name, schedule, containers,
+            self, name='', schedule='', containers: DictType[str, dict] = None,
             termination_grace_period=30,
             restart_policy='Never',
             concurrency_policy='Allow',
-            volumes=None,
+            volumes: DictType[str, dict] = None,
             annotations=None, metadata=None, labels=None,
             spec_annotations=None,
     ):
-        super().__init__(name, metadata, annotations)
-        labels = labels or {
-            'app': name,
-        }
+        super().__init__(metadata, annotations)
 
-        self.spec = Dict(
+        self.spec = CronJobSpec(
             schedule=schedule,
             concurrencyPolicy=concurrency_policy,
             jobTemplate=Dict(
@@ -226,8 +299,8 @@ class CronJob(ContainersMixin, KubernetesManifestMixin):
                     template=Dict(
                         metadata=Dict(
                             name=name,
-                            labels=labels,
-                            annotations=spec_annotations,
+                            labels=Dict(labels),
+                            annotations=Dict(spec_annotations),
                         ),
                         spec=Dict(
                             volumes=List(volumes),
@@ -239,6 +312,18 @@ class CronJob(ContainersMixin, KubernetesManifestMixin):
                 )
             )
         )
+        self.set_name(name)
+
+    def set_name(self, name: str):
+        """
+        Sets name in:
+        * spec.jobTemplate.spec.template.metadata.name
+        * spec.jobTemplate.spec.template.metadata.labels.app
+        """
+        self.name = name
+        self.metadata.name = name
+        self.spec.jobTemplate.spec.template.metadata.name = name
+        self.spec.jobTemplate.spec.template.metadata.labels.app = name
 
     def serialize(self, app=None):
         res = {
@@ -251,29 +336,35 @@ class CronJob(ContainersMixin, KubernetesManifestMixin):
         return res
 
 
+class JobSpec(Dict):
+    template: JobTemplate
+    backoffLimit: int
+    parallelism: int
+
+
 class Job(ContainersMixin, KubernetesManifestMixin):
     obj_type = "job"
     api_version = "batch/v1"
 
+    metadata: Metadata
+    spec: JobSpec
+
     def __init__(
-            self, name, containers,
+            self, name='', containers: DictType[str, dict] = None,
             termination_grace_period=30,
             restart_policy='Never',
-            volumes=None,
+            volumes: DictType[str, dict] = None,
             annotations=None, metadata=None, labels=None,
             spec_annotations=None,
     ):
-        super().__init__(name, metadata, annotations)
-        labels = labels or {
-            'app': name,
-        }
+        super().__init__(metadata, annotations)
 
-        self.spec = Dict(
+        self.spec = JobSpec(
             template=Dict(
                 metadata=Dict(
                     name=name,
-                    labels=labels,
-                    annotations=spec_annotations,
+                    labels=Dict(labels),
+                    annotations=Dict(spec_annotations),
                 ),
                 spec=Dict(
                     volumes=List(volumes),
@@ -283,29 +374,58 @@ class Job(ContainersMixin, KubernetesManifestMixin):
                 ),
             )
         )
+        self.set_name(name)
+
+    def set_name(self, name: str):
+        """
+        Sets name in:
+        * spec.template.metadata.name
+        * spec.template.metadata.labels.app
+        """
+        self.name = name
+        self.metadata.name = name
+        self.spec.template.metadata.name = name
+        self.spec.template.metadata.labels.app = name
+
+
+class ServiceSpec(Dict):
+    ports: List
+    selector: Dict
+    clusterIP: str
+    loadBalancerIP: str
+    type: str
 
 
 class Service(KubernetesManifestMixin):
     obj_type = "service"
     api_version = "v1"
 
-    def __init__(
-            self, name, ports, selector,
-            service_type='ClusterIP', load_balancer_ip=None, cluster_ip=None,
-            annotations=None, metadata=None, labels=None,
-    ):
-        super().__init__(name, metadata, annotations)
-        labels = labels or {
-            'app': name,
-        }
+    metadata: Metadata
+    spec: ServiceSpec
 
-        self.spec = Dict(
+    def __init__(
+            self, name='', ports: DictType[str, dict] = None, selector: DictType[str, str] = None,
+            service_type='ClusterIP', load_balancer_ip=None, cluster_ip=None,
+            annotations: DictType[str, str] = None, metadata=None,
+    ):
+        """
+        :param selector: {'app': "foo"}
+        :param ports: {'port_name': {'port': 1234, 'targetPort': 4321, 'protocol': 'TCP'}}
+        """
+        super().__init__(metadata, annotations)
+
+        self.spec = ServiceSpec(
             type=service_type,
             ports=List(ports),
-            selector=selector,
+            selector=Dict(selector),
         )
+        self.set_name(name)
 
         if load_balancer_ip:
             self.spec['loadBalancerIP'] = load_balancer_ip
         if cluster_ip:
             self.spec['clusterIP'] = cluster_ip
+
+    def set_name(self, name):
+        self.name = name
+        self.metadata.name = name

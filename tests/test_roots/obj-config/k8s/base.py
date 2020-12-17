@@ -148,19 +148,9 @@ SERVICE = Service(
         'app': "foo",
     },
     ports={
-        'http': {'port': 5001, 'protocol': 'TCP'},
-    }
-)
-
-LOADBALANCER = Service(
-    name="foo-labrador",
-    selector={
-        'app': "foo",
-    },
-    ports={
         'http': {'port': 5001, 'targetPort': 5001, 'protocol': 'TCP'},
     },
-    cluster_ip="None",
+    annotations={'loadbalancer': "enabled"},
 )
 
 DOCKER_FILES = [
@@ -177,6 +167,5 @@ K8S_OBJECTS = {
     "job": [JOB1, JOB2],
     "service": [
         SERVICE,
-        LOADBALANCER,
     ]
 }

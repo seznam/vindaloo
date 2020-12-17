@@ -2,7 +2,9 @@ import json
 import os
 import sys
 
+import pytest
 import vindaloo
+
 from utils import chdir
 
 
@@ -197,7 +199,8 @@ def test_deploy_to_outdir(loo, test_temp_dir):
     assert os.path.isfile(os.path.join(test_temp_dir, "test-config-map_configmap.yaml"))
 
 
-def test_deploy_config_obj(loo, test_temp_dir):
+@pytest.mark.parametrize('test_root_dir', ['obj-config', 'obj-config-wo-init'])
+def test_deploy_config_obj(loo, test_temp_dir, test_root_dir):
     # fake arguments
     sys.argv = ['vindaloo', '--noninteractive', 'deploy-dir', '--apply-output-dir={}'.format(test_temp_dir), 'dev', 'cluster1']
 
@@ -206,7 +209,7 @@ def test_deploy_config_obj(loo, test_temp_dir):
         'foo-registry.com/test/bar:2.0.0',
     ]
 
-    with chdir('tests/test_roots/obj-config'):
+    with chdir(f'tests/test_roots/{test_root_dir}'):
         loo.main()
 
     assert vindaloo.app.args.cluster == 'cluster1'
@@ -249,11 +252,13 @@ def test_deploy_config_obj(loo, test_temp_dir):
         ==
         'registry.hub.docker.com/library/busybox:latest'
     )
+    assert data['spec']['schedule'] == "0 0 * * *"
     assert data['spec']['jobTemplate']['spec']['template']['spec']['containers'][0]['volumeMounts'][0] == {
         'name': 'localconfig',
         'mountPath': "/app.local.conf",
         'subPath': "app.local.conf",
     }
+    assert data['spec']['jobTemplate']['spec']['template']['spec']['containers'][0]['command'] == ['echo', 'z']
 
     data = json.loads(open(os.path.join(test_temp_dir, 'foo_job.yaml'), 'r').read())
     assert data['apiVersion'] == 'batch/v1'
@@ -269,7 +274,7 @@ def test_deploy_config_obj(loo, test_temp_dir):
     data = json.loads(open(os.path.join(test_temp_dir, 'foo_service.yaml'), 'r').read())
     assert data['spec']['type'] == 'NodePort'
     assert data['spec']['ports'][0]['nodePort'] == 30666
-
-    data = json.loads(open(os.path.join(test_temp_dir, 'foo-labrador_service.yaml'), 'r').read())
     assert data['spec']['ports'][0]['targetPort'] == 5001
     assert data['spec']['loadBalancerIP'] == '10.1.1.1'
+    assert data['metadata']['name'] == "foo"
+    assert data['metadata']['annotations']['loadbalancer'] == "enabled"
