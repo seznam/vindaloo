@@ -16,7 +16,7 @@ __all__ = (
 class JsonSerializable:
     NAME = "undefined"
 
-    def serialize(self, app=None):
+    def serialize(self, *args, **kwargs):
         raise NotImplementedError()
 
     def clone(self):
@@ -44,9 +44,9 @@ class Dict(JsonSerializable):
         else:
             self.children = {}
 
-    def serialize(self, app=None):
+    def serialize(self, *args, **kwargs):
         return {
-            key: val.serialize(app) if isinstance(val, Dict) else val
+            key: val.serialize(*args, **kwargs) if isinstance(val, Dict) else val
             for key, val in self.children.items()
         }
 
@@ -78,14 +78,14 @@ class List(Dict):
     NAME = 'List'
     VALUE_KEY = 'value'
 
-    def serialize(self, app=None):
+    def serialize(self, *args, **kwargs):
         items = []
 
         for key, val in self.children.items():
             if isinstance(val, Dict):
                 items.append({
                     'name': key,
-                    **val.serialize(app),
+                    **val.serialize(*args, **kwargs),
                 })
             elif isinstance(val, dict):
                 items.append({
@@ -120,15 +120,15 @@ class Container(Dict):
     image: str
     command: Union[str, ListType[str]]
 
-    def serialize(self, app=None):
-        data = super().serialize(app)
+    def serialize(self, *args, **kwargs):
+        data = super().serialize(*args, **kwargs)
 
         # Prepend default registry if image does not starts with "!"
         if data["image"].startswith("!"):
             data["image"] = data["image"][1:]
-        elif app:
+        elif kwargs.get('app'):
             data['image'] = '{registry}/{image}'.format(
-                registry=app.registry,
+                registry=kwargs['app'].registry,
                 image=data['image'],
             )
 
@@ -161,12 +161,12 @@ class KubernetesManifestMixin(JsonSerializable):
         self.spec = Dict()
         self.name = ''
 
-    def serialize(self, app=None):
+    def serialize(self, *args, **kwargs):
         res = {
             'apiVersion': self.api_version,
             'kind': self.obj_type.capitalize(),
-            'metadata': self.metadata.serialize(app),
-            'spec': self.spec.serialize(app)
+            'metadata': self.metadata.serialize(*args, **kwargs),
+            'spec': self.spec.serialize(*args, **kwargs)
         }
 
         return res
@@ -322,12 +322,12 @@ class CronJob(ContainersMixin, KubernetesManifestMixin):
         self.spec.jobTemplate.spec.template.metadata.name = name
         self.spec.jobTemplate.spec.template.metadata.labels.app = name
 
-    def serialize(self, app=None):
+    def serialize(self, *args, **kwargs):
         res = {
             'apiVersion': self.api_version,
             'kind': "CronJob",
-            'metadata': self.metadata.serialize(app),
-            'spec': self.spec.serialize(app)
+            'metadata': self.metadata.serialize(*args, **kwargs),
+            'spec': self.spec.serialize(*args, **kwargs)
         }
 
         return res
