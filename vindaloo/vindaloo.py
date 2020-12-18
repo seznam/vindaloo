@@ -1171,3 +1171,6 @@ class Vindaloo:
 def run():
     tool = Vindaloo()
     tool.main()
+
+
+app = Vindaloo()
