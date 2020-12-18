@@ -1,9 +1,11 @@
 from base import *
 import vindaloo
 
-ENV['ENV'] = "dev"
+ENV = {
+    'ENV': "dev",
+}
 
-DEPLOYMENT.spec.template.spec.containers.foo.env = vindaloo.List(ENV)
+DEPLOYMENT.spec.template.spec.containers.foo.env.update(ENV)
 DEPLOYMENT.metadata['annotations']['deploy-cluster'] = 'cluster2'
 
 CRONJOB.spec.jobTemplate.spec.template.spec.containers.foo.command = ['echo', 'z']

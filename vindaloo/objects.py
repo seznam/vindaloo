@@ -50,6 +50,9 @@ class Dict(JsonSerializable):
             for key, val in self.children.items()
         }
 
+    def update(self, data):
+        self.children.update(data)
+
     def __getattr__(self, key):
         if key not in self.children:
             self.children[key] = Dict()
@@ -72,6 +75,12 @@ class Dict(JsonSerializable):
 
     def __deepcopy__(self, memo):
         return self.__class__(copy.deepcopy(self.children, memo))
+
+    def __str__(self):
+        return f'<Dict {self.children}>'
+
+    def __repr__(self):
+        return f'vindaloo.objects.Dict({self.children})'
 
 
 class List(Dict):
@@ -216,6 +225,7 @@ class Deployment(ContainersMixin, KubernetesManifestMixin):
         """
         :param annotations: Sets metadata.annotations in manifest
         :param spec_annotations: Sets spec.template.metadata.annotations in manifest
+        :param termination_grace_period: Sets spec.template.spec.terminationGracePeriodSeconds in manifest
         """
         super().__init__(metadata, annotations)
 
