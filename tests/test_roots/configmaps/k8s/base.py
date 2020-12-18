@@ -1,5 +1,3 @@
-import versions
-
 
 CONFIGMAP = {'PLACEHOLDER': 'PLACETAKER'}
 

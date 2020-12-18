@@ -68,6 +68,7 @@ class Vindaloo:
         self.config_module = None  # konfigurace aktualne vybraneho prostredi (Dockerfily, deploymenty, porty, ...)
         self.args = None
         self.changed_secrets = {}  # Secrety naplanovane ke zmene
+        self.versions = {}  # Verze imagu
 
     def _am_i_logged_in(self) -> bool:
         """
@@ -116,7 +117,6 @@ class Vindaloo:
         k8s_clusters = k8s_clusters.split(',')
         docker_registry = self._input_text("Docker registry hostname: ")
         image_name = self._input_text("Name of docker repository (for example: avengers/web): ")
-        image_name = self._strip_image_name(image_name)
         ident_label = image_name.split('/')[1]
 
         os.mkdir(CONFIG_DIR)
@@ -190,7 +190,7 @@ class Vindaloo:
 
         self.config_module = self._import_config(dep_env)
         if not self.config_module:
-            self.fail("Environment '{}' does not have configuration.")
+            self.fail(f"Environment '{dep_env}' does not have configuration.")
 
         # prepneme se
         if not self.args.apply_output_dir:
@@ -314,8 +314,7 @@ class Vindaloo:
         if not os.path.isfile("{}/{}.py".format(CONFIG_DIR, env)):
             return None
 
-        versions = json.load(open('{}/versions.json'.format(CONFIG_DIR)))
-        sys.modules['versions'] = versions
+        self.versions = json.load(open('{}/versions.json'.format(CONFIG_DIR)))
         sys.modules['vindaloo'].app = self
         sys.path.insert(0, os.path.abspath(CONFIG_DIR))
         try:

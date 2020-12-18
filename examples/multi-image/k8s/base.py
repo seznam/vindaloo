@@ -1,4 +1,6 @@
-import versions
+import vindaloo
+
+versions = vindaloo.app.versions
 
 MAINTAINER = "Daniel Milde <daniel.milde@firma.seznam.cz>"
 

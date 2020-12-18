@@ -24,7 +24,9 @@ ENVS = {{
 """
 
 EXAMPLE_BASE = """
-import versions
+import vindaloo
+
+versions = vindaloo.app.versions
 
 CONFIG = {{
     'maintainer': "{maintainer_name} <{maintainer_email}>",

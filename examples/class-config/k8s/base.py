@@ -1,6 +1,7 @@
-import versions
+import vindaloo
 from vindaloo.objects import Deployment, Service
 
+versions = vindaloo.app.versions
 CONFIG = {
     'maintainer': "Avengers <avengers@domain.com>",
     'version': versions['avengers/adminserver'],

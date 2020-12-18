@@ -212,6 +212,10 @@ class Deployment(ContainersMixin, KubernetesManifestMixin):
             annotations: DictType[str, str] = None, metadata=None, labels=None,
             spec_annotations: DictType[str, str] = None,
     ):
+        """
+        :param annotations: Sets metadata.annotations in manifest
+        :param spec_annotations: Sets spec.template.metadata.annotations in manifest
+        """
         super().__init__(metadata, annotations)
 
         self.spec = DeploymentSpec(
@@ -289,6 +293,10 @@ class CronJob(ContainersMixin, KubernetesManifestMixin):
             annotations=None, metadata=None, labels=None,
             spec_annotations=None,
     ):
+        """
+        :param annotations: Sets metadata.annotations in manifest
+        :param spec_annotations: Sets spec.jobTemplate.spec.template.metadata.annotations in manifest
+        """
         super().__init__(metadata, annotations)
 
         self.spec = CronJobSpec(
@@ -357,6 +365,10 @@ class Job(ContainersMixin, KubernetesManifestMixin):
             annotations=None, metadata=None, labels=None,
             spec_annotations=None,
     ):
+        """
+        :param annotations: Sets metadata.annotations in manifest
+        :param spec_annotations: Sets spec.template.metadata.annotations in manifest
+        """
         super().__init__(metadata, annotations)
 
         self.spec = JobSpec(

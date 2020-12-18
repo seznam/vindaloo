@@ -1,5 +1,7 @@
-import versions
+import vindaloo
 from vindaloo import Container, CronJob, Deployment, Job, List, Service
+
+versions = vindaloo.app.versions
 
 CONFIG = {
     'maintainer': "Foo <test@foo.com>",
