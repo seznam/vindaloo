@@ -1,53 +1,25 @@
 {{#includes}}{{&base_image}}{{/includes}}
 LABEL maintainer="{{{maintainer}}}"
-LABEL description="SOS adminweb"
+LABEL description="avengers web"
 
 EXPOSE 8000
-ENV prometheus_multiproc_dir=/www/avengers/adminweb/log/prometheus
+ENV prometheus_multiproc_dir=/srv/http/web/log/prometheus
 
 RUN apt-get install -y \
-        szn-python-frpcstorage \
-        szn-python-libeaas \
-        python-teng>=2.3.5 \
         uwsgi \
         uwsgi-core \
-        uwsgi-plugin-python \
-        szn-python2.7-chartdirector>=5.0.0 \
-        python-pycurl
+        uwsgi-plugin-python
 
-COPY adminweb/Pipfile adminweb/Pipfile.lock /www/avengers/adminweb/
-RUN cd /www/avengers/adminweb && https_proxy={{https_proxy}} pipenv install --system --deploy
+RUN mkdir -p /srv/http/web
+COPY web/Pipfile web/Pipfile.lock /srv/http/web/
+RUN cd /srv/http/web && https_proxy={{https_proxy}} pipenv install --system --deploy
 
-RUN groupadd -r --gid=1000 sos-adminweb && \
-    useradd -r --uid=1000 -b /home/sos-adminweb -d /home/sos-adminweb -m -s /bin/bash -g sos-adminweb sos-adminweb
+RUN groupadd -r --gid=1000 avengers-web && \
+    useradd -r --uid=1000 -b /srv/http/web -d /srv/http/web -m -s /bin/bash -g avengers-web avengers-web
 
-COPY adminweb/bin/* /www/avengers/adminweb/bin/
-COPY adminweb/locale /www/avengers/adminweb/locale/
-COPY adminweb/src /www/avengers/adminweb/www
-COPY adminweb/conf/uwsgi-docker.ini  /www/avengers/adminweb/conf/uwsgi.ini
-COPY adminweb/conf/uwsgi-docker.ini  /www/avengers/adminweb/debconf/uwsgi.ini
-COPY adminweb/debian/szn-sos-adminweb.init     /www/avengers/adminweb/debconf/
-COPY adminweb/templ /www/avengers/adminweb/templ
+COPY web /srv/http/web
+RUN chown -R avengers-web:avengers-web /srv/http/web
+ENV USER="avengers-web"
 
-COPY locale/cs.dict /www/avengers/adminweb/templ/adminweb-teng.dict
-COPY libs/calllog.py /www/avengers/adminweb/www/lib/calllog.py
-COPY libs/mailer.py /www/avengers/adminweb/www/lib/mailer.py
-COPY libs/sos.py /www/avengers/adminweb/www/lib/sos.py
-COPY libs/dates.py /www/avengers/adminweb/www/lib/dates.py
-COPY libs/util.py /www/avengers/adminweb/www/lib/util.py
-COPY libs/colorize.py /www/avengers/adminweb/www/lib/colorize.py
-COPY libs/xmltestrunner.py /www/avengers/adminweb/www/lib/xmltestrunner.py
-COPY libs/textFormatter.py /www/avengers/adminweb/www/lib/textFormatter.py
-COPY libs/validate.py /www/avengers/adminweb/www/lib/validate.py
-
-COPY entity/sosentity /usr/lib/python2.7/dist-packages/sosentity
-
-COPY libs/util.py /usr/lib/python2.7/dist-packages/sosentity/lib/util.py
-COPY libs/validate.py /usr/lib/python2.7/dist-packages/sosentity/lib/validate.py
-
-RUN mkdir -p /www/avengers/adminweb/log/prometheus
-RUN chown -R sos-adminweb:sos-adminweb /www/avengers/adminweb
-ENV USER="sos-adminweb"
-
-ENTRYPOINT ["uwsgi", "/www/avengers/adminweb/conf/uwsgi.ini"]
+ENTRYPOINT ["uwsgi", "/srv/http/web/conf/uwsgi.ini"]
 LABEL version="{{version}}"

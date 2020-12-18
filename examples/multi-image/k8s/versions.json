@@ -1,5 +1,5 @@
 {
- "avengers/adminweb": "1.2.0",
- "avengers/adminweb-proxy": "1.2.0",
- "avengers/adminweb-outage": "1.0.0"
+ "avengers/web": "1.2.0",
+ "avengers/web-proxy": "1.2.0",
+ "avengers/web-outage": "1.0.0"
 }

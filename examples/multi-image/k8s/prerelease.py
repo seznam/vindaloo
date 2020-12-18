@@ -5,7 +5,7 @@ DEPLOYMENT_ADMINWEB.update({
     'env': [
         {
             'key': 'ENVIRONMENT',
-            'val': "sos-prerelease"
+            'val': "avengers-prerelease"
         },
         {
             'key': 'PORT',

@@ -11,7 +11,7 @@ spec:
         app: {{ident_label}}
     spec:
       containers:
-      - name: sos-adminweb-outage
+      - name: avengers-web-outage
         image: {{registry}}/{{image}}
         ports:
         - containerPort: {{port}}

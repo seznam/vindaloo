@@ -5,7 +5,7 @@ DEPLOYMENT_ADMINWEB.update({
     'env': [
         {
             'key': 'ENVIRONMENT',
-            'val': "sos-stable"
+            'val': "avengers-stable"
         },
         {
             'key': 'PORT',
@@ -15,24 +15,24 @@ DEPLOYMENT_ADMINWEB.update({
     # Anotace pro produkcniho promethea admins3
     'spec_annotations': [
         {
-            'key': 'cz.seznam.admins3.metrics.scrape',
+            'key': 'metrics.scrape',
             'val': "true"
         },
         {
-            'key': 'cz.seznam.admins3.metrics.port',
+            'key': 'metrics.port',
             'val': "8000"
         },
         {
-            'key': 'cz.seznam.admins3.metrics.path',
+            'key': 'metrics.path',
             'val': "/monitoring/prometheus"
         },
         {
-            'key': 'scif.cz/log-retention',
+            'key': 'log-retention',
             'val': "3w"
         },
         {
             'key': 'team',
-            'val': "sos-vyvoj@firma.seznam.cz"
+            'val': "avengers"
         },
     ]
 })
