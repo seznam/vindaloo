@@ -177,25 +177,26 @@ class Metadata(Dict):
     annotations: Dict
 
 
-class TemplateMetadata(Dict):
+class PodMetadata(Dict):
     name: str
     labels: Dict
     annotations: Dict
 
 
-class TemplateSpec(Dict):
+class PodSpec(Dict):
     volumes: List
     containers: DictType[str, Container]
     terminationGracePeriodSeconds: int
+    restartPolicy: str
 
 
-class DeploymentTemplate(Dict):
-    metadata: TemplateMetadata
-    spec: TemplateSpec
+class Pod(Dict):
+    metadata: PodMetadata
+    spec: PodSpec
 
 
-class DeploymentSpec(Dict):
-    template: DeploymentTemplate
+class ReplicaSet(Dict):
+    template: Pod
     replicas: int
 
 
@@ -204,7 +205,7 @@ class Deployment(ContainersMixin, KubernetesManifestMixin):
     api_version = "apps/v1"
 
     metadata: Metadata
-    spec: DeploymentSpec
+    spec: ReplicaSet
 
     def __init__(
             self, name='', containers: DictType[str, dict] = None,
@@ -218,7 +219,7 @@ class Deployment(ContainersMixin, KubernetesManifestMixin):
         """
         super().__init__(metadata, annotations)
 
-        self.spec = DeploymentSpec(
+        self.spec = ReplicaSet(
             replicas=replicas,
             template=Dict(
                 metadata=Dict(
@@ -250,20 +251,8 @@ class Deployment(ContainersMixin, KubernetesManifestMixin):
         self.spec.selector.matchLabels.app = name
 
 
-class JobTemplateSpec(Dict):
-    restartPolicy: str
-    terminationGracePeriodSeconds: int
-    containers: DictType[str, Container]
-    volumes: List
-
-
-class JobTemplate(Dict):
-    spec: JobTemplateSpec
-    metadata: TemplateMetadata
-
-
 class CronJobTemplateSpec(Dict):
-    template: JobTemplate
+    template: Pod
 
 
 class CronJobTemplate(Dict):
@@ -345,7 +334,7 @@ class CronJob(ContainersMixin, KubernetesManifestMixin):
 
 
 class JobSpec(Dict):
-    template: JobTemplate
+    template: Pod
     backoffLimit: int
     parallelism: int
 
