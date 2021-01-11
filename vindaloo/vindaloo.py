@@ -323,7 +323,9 @@ class Vindaloo:
                 del sys.modules[env]
             res_mod = import_module(env)
             return res_mod
-        except ModuleNotFoundError:
+        except ModuleNotFoundError as ex:
+            if env not in str(ex):
+                self.fail(f"Error importing env configuration: {ex}")
             return None
         finally:
             sys.path = sys.path[1:]
