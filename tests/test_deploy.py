@@ -215,6 +215,7 @@ def test_deploy_config_obj(loo, test_temp_dir):
 
     assert data['apiVersion'] == 'apps/v1'
     assert data['kind'] == 'Deployment'
+    assert data['spec']['selector']['matchLabels']['app'] == 'foo'
     assert data['spec']['template']['spec']['volumes'][0]['secret']['secretName'] in ('local-conf', 'cert')
     assert data['spec']['template']['spec']['terminationGracePeriodSeconds'] == 30
     assert data['something'] == {'foo': 'boo'}

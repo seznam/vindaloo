@@ -106,6 +106,11 @@ class Deployment(CustomizeManifestMixin, JsonSerializable, PrepareDataMixin):
             'metadata': self.metadata,
             'spec': {
                 'replicas': self.replicas,
+                'selector': {
+                    'matchLabels': {
+                        'app': self.name,
+                    },
+                },
                 'template': {
                     'metadata': {
                         'name': self.name,
