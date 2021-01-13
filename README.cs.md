@@ -286,7 +286,7 @@ Ukázkový deployment.yaml
 ------------------------
 
 ```
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ident_label}}

@@ -97,7 +97,7 @@ RUN apt-get update && apt-get upgrade -y
 LABEL version="{{version}}"
 """
 
-EXAMPLE_DEPLOYMENT = """apiVersion: extensions/v1beta1
+EXAMPLE_DEPLOYMENT = """apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ident_label}}

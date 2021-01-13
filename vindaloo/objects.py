@@ -68,7 +68,7 @@ class CustomizeManifestMixin:
 
 class Deployment(CustomizeManifestMixin, JsonSerializable, PrepareDataMixin):
     obj_type = "deployment"
-    api_version = "extensions/v1beta1"
+    api_version = "apps/v1"
 
     def __init__(
             self, name, containers,

@@ -213,7 +213,7 @@ def test_deploy_config_obj(loo, test_temp_dir):
 
     data = json.loads(open(os.path.join(test_temp_dir, 'foo_deployment.yaml'), 'r').read())
 
-    assert data['apiVersion'] == 'extensions/v1beta1'
+    assert data['apiVersion'] == 'apps/v1'
     assert data['kind'] == 'Deployment'
     assert data['spec']['template']['spec']['volumes'][0]['secret']['secretName'] in ('local-conf', 'cert')
     assert data['spec']['template']['spec']['terminationGracePeriodSeconds'] == 30
