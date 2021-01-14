@@ -728,7 +728,10 @@ class Vindaloo:
         else:
             temp_file = tempfile.NamedTemporaryFile("wb")
 
-        temp_file.write(bytes(obj.to_json(self), 'utf-8'))
+        temp_file.write(bytes(
+            json.dumps(obj.serialize(self), indent=4),
+            'utf-8'
+        ))
         temp_file.seek(0)
 
         # Optionally offers edit

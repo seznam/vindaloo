@@ -218,7 +218,7 @@ def test_deploy_config_obj(loo, test_temp_dir):
     assert data['spec']['selector']['matchLabels']['app'] == 'foo'
     assert data['spec']['template']['spec']['volumes'][0]['secret']['secretName'] == 'local-conf'
     assert data['spec']['template']['spec']['terminationGracePeriodSeconds'] == 30
-    assert data['something'] == {'foo': 'boo'}
+    assert data['spec']['something'] == {'foo': 'boo'}
     assert data['spec']['template']['spec']['containers'][0]['image'] == 'foo-registry.com/test/foo:1.0.0'
     assert data['spec']['template']['spec']['containers'][0]['volumeMounts'][0] == {
         'mountPath': '/cert.pem',

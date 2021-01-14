@@ -62,10 +62,8 @@ DEPLOYMENT = Deployment(
             },
         },
     },
-    something={
-        'foo': 'boo',
-    }
 )
+DEPLOYMENT.spec.something = {'foo': 'boo'}
 
 CRONJOB = CronJob(
     name="foo",
@@ -132,7 +130,8 @@ JOB1 = Job(
 
 JOB2 = JOB1.clone()
 JOB2.name = 'bar'
-JOB2.containers['foo']['command'] = ['echo', 'y']
+JOB2.spec.template.metadata.name = 'bar'
+JOB2.spec.template.spec.containers['foo']['command'] = ['echo', 'y']
 
 SERVICE = Service(
     name="foo",
