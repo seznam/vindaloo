@@ -8,7 +8,7 @@ pex-in-docker:
 	docker run --rm -v $(PWD):/x python:3.6-alpine sh -c "apk add --no-cache make && cd /x && make install-dev pex-local"
 
 pex-local: cache
-	pex . argcomplete setuptools pystache -e vindaloo.vindaloo:run -o latest/vindaloo.pex --python-shebang='/usr/bin/env python3' --disable-cache
+	pex --python=python3 . argcomplete setuptools pystache -e vindaloo.vindaloo:run -o latest/vindaloo.pex --python-shebang='/usr/bin/env python3' --disable-cache
 
 test:
 	pipenv run py.test tests

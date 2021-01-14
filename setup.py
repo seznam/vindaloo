@@ -3,7 +3,7 @@ import re
 from setuptools import setup
 
 
-with open("vindaloo/vindaloo.py", "rt", encoding="utf8") as f:
+with open("vindaloo/vindaloo.py", "rt") as f:
     version = re.search(r'VERSION = \'(.*?)\'', f.read()).group(1)
 
 with open("README.md", "r") as fh:
