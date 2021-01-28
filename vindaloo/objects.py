@@ -82,11 +82,12 @@ class Deployment(CustomizeManifestMixin, JsonSerializable, PrepareDataMixin):
         self.containers = containers
         self.termination_grace_period = termination_grace_period
         self.volumes = volumes or {}
-        self.metadata = metadata or {
-            'name': self.name,
-        }
         self.labels = labels or {
             'app': self.name,
+        }
+        self.metadata = metadata or {
+            'name': self.name,
+            'labels': self.labels,
         }
         self.additional_params = kwargs
         super().__init__(**kwargs)
