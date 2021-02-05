@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: foo-web
+  labels:
+    app: foo-web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: foo-web
+  template:
+    metadata:
+      labels:
+        app: foo-web
+      annotations:
+        please-redeploy-dis: "14"
+    spec:
+      containers:
+      - name: nginx
+        image: docker.repo/bar/foo-web:1.0.0
+        imagePullPolicy: "Always"
+        ports:
+        - containerPort: 80
+        - containerPort: 8080

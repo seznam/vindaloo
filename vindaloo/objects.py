@@ -153,7 +153,7 @@ class ContainersMixin:
                 val['volumeMounts'] = List(val['volumeMounts'])
             if 'env' in val:
                 val['env'] = List(val['env'])
-            if 'ports' in val:
+            if 'ports' in val and isinstance(val['ports'], dict):
                 val['ports'] = PortsList(val['ports'])
             containers[key] = Container(val)
 

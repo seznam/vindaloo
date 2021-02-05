@@ -17,6 +17,7 @@ import urllib.request
 import argcomplete
 import pystache
 
+from .convert import get_obj_repr_from_dict
 from .examples import (
     EXAMPLE_VINDALOO_CONF,
     EXAMPLE_BASE,
@@ -170,6 +171,13 @@ class Vindaloo:
             '{}/service.yaml'.format(templates_dir),
             EXAMPLE_SERVICE
         )
+
+    def convert_manifest(self):
+        import yaml
+        with open(self.args.manifest, 'r') as fp:
+            manifest_data = yaml.load(fp, Loader=yaml.Loader)
+            res = get_obj_repr_from_dict(manifest_data)
+            self._out(res)
 
     def k8s_select_env(self) -> None:
         """
@@ -936,7 +944,9 @@ class Vindaloo:
 
         if command == "init":
             self.init_env()
-        if command == "build":
+        elif command == "convert-manifest":
+            self.convert_manifest()
+        elif command == "build":
             self.build_images()
         elif command == "pull":
             self.pull_images()
@@ -999,6 +1009,9 @@ class Vindaloo:
 
         init_parser = subparsers.add_parser('init', help='prepares project for Vindaloo')
         init_parser.add_argument('dir', help='project directory')
+
+        convert_parser = subparsers.add_parser('convert-manifest', help='convert yaml manifest into Vindaloo config')
+        convert_parser.add_argument('manifest', help='manifest file')
 
         build_parser = subparsers.add_parser('build', help='builds Docker images (all of them)')
         build_parser.add_argument(
