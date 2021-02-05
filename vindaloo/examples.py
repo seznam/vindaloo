@@ -81,7 +81,7 @@ DEPLOYMENT.update({
 """
 
 EXAMPLE_DOCKERFILE = """FROM foo-registry.com/debian:stretch
-LABEL maintainer="{{{maintainer}}}"
+LABEL maintainer="{{{{{{maintainer}}}}}}"
 LABEL description=""
 
 EXPOSE 8000
@@ -96,7 +96,7 @@ ENV LC_CTYPE="en_US.UTF-8"
 
 RUN apt-get update && apt-get upgrade -y
 
-LABEL version="{{version}}"
+LABEL version="{{{{version}}}}"
 """
 
 EXAMPLE_DEPLOYMENT = """apiVersion: apps/v1

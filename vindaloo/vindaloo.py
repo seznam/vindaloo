@@ -159,7 +159,8 @@ class Vindaloo:
         # basic templates (Dockerfile, deployment, service)
         self._create_conf_file(
             '{}/Dockerfile'.format(templates_dir),
-            EXAMPLE_DOCKERFILE
+            EXAMPLE_DOCKERFILE,
+            dict(docker_registry=docker_registry),
         )
         self._create_conf_file(
             '{}/deployment.yaml'.format(templates_dir),
