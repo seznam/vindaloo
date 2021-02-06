@@ -69,9 +69,10 @@ def get_deployment_obj_repr_from_dict(data) -> Deployment:
                 dict_ports[port['name']] = port
                 port.pop('name')
 
-        containers_string += TAB * 2 + f"'name': {{\n"
+        containers_string += TAB * 2 + f"'{name}': {{\n"
         containers_string += TAB * 3 + f"""'image': "{image}:" + versions['{image}'],\n"""
         containers_string += TAB * 3 + f"'ports': {dict_ports or container.get('ports', [])},\n"
+        containers_string += TAB * 3 + f"'env': {create_dict_from_name_value_list(container.get('env', []))},\n"
         containers_string += TAB * 2 + "},\n"
     containers_string += TAB + "}"
 
@@ -100,6 +101,14 @@ def create_dict_from_named_list(data):
     for item in data:
         name = item.pop('name')
         res[name] = item
+    return res
+
+
+def create_dict_from_name_value_list(data):
+    res = {}
+    for item in data:
+        name = item.pop('name')
+        res[name] = item.get('value')
     return res
 
 

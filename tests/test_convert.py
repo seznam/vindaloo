@@ -18,9 +18,10 @@ DEPLOYMENT = Deployment(
     name="nginx",
     replicas=3,
     containers={
-        'name': {
+        'nginx': {
             'image': "docker.repo/bar/foo-web:" + versions['docker.repo/bar/foo-web'],
             'ports': [{'containerPort': 80}, {'containerPort': 8080}],
+            'env': {'APP_ENV': 'production'},
         },
     },
     volumes=None,
