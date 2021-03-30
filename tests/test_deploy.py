@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import sys
@@ -132,21 +133,20 @@ def test_deploy_watch(loo):
     ]
 
 
-def test_deploy_configmap(loo):
+def test_configmap(loo):
     # fake arguments
     sys.argv = ['vindaloo', '--noninteractive', 'deploy', 'dev', 'cluster1']
 
     loo.cmd.return_value.stdout = b'{}'
 
-    with chdir('tests/test_roots/configmaps'):
+    with chdir('tests/test_roots/configmap'):
         loo.main()
 
     # check arguments docker and kubectl was called with
-    assert len(loo.cmd.call_args_list) == 4
+    assert len(loo.cmd.call_args_list) == 3
     auth_cmd = loo.cmd.call_args_list[0][0][0]
     use_context_cmd = loo.cmd.call_args_list[1][0][0]
-    config_map_create_cmd = loo.cmd.call_args_list[2][0][0]
-    apply_cmd = loo.cmd.call_args_list[3][0][0][0:3]
+    apply_cmd = loo.cmd.call_args_list[2][0][0][0:3]
 
     assert auth_cmd == [
         'kubectl',
@@ -167,13 +167,6 @@ def test_deploy_configmap(loo):
         '-f',
     ]
 
-    assert config_map_create_cmd[:4] == [
-        'kubectl',
-        'create',
-        'configmap',
-        'test-config-map',
-    ]
-
 
 def test_deploy_to_outdir(loo, test_temp_dir):
     # fake arguments
@@ -182,21 +175,22 @@ def test_deploy_to_outdir(loo, test_temp_dir):
 
     loo.cmd.return_value.stdout = b'{}'
 
-    with chdir('tests/test_roots/configmaps'):
+    with chdir('tests/test_roots/configmap'):
         loo.main()
 
-    # check arguments docker and kubectl was called with
-    assert len(loo.cmd.call_args_list) == 1
-    config_map_create_cmd = loo.cmd.call_args_list[0][0][0]
-
-    assert config_map_create_cmd[:4] == [
-        'kubectl',
-        'create',
-        'configmap',
-        'test-config-map',
-    ]
-
-    assert os.path.isfile(os.path.join(test_temp_dir, "test-config-map_configmap.yaml"))
+    assert os.path.isfile(os.path.join(test_temp_dir, "test-config-map_configmap.json"))
+    with open(os.path.join(test_temp_dir, "test-config-map_configmap.json"), 'r') as file:
+        configmap = json.loads(file.read())
+        assert configmap['metadata']['name'] == 'test-config-map'
+        assert configmap['data']['file_config_key'] == (
+            'some_config_value=123\n'
+            'another_config=one,two,three\n'
+            'template_config=This value depends on the selected environment.\n'
+        )
+        assert base64.decodebytes(configmap['binary_data']['simple_binary_key'].encode()) == b'\x76\x69\x6b\x79'
+        with open('tests/test_roots/configmap/k8s/templates/binary_config.conf', 'br') as binary_file:
+            base64_content = configmap['binary_data']['binary_file_config_key']
+            assert base64.decodebytes(base64_content.encode()) == binary_file.read()
 
 
 @pytest.mark.parametrize('test_root_dir', ['obj-config', 'obj-config-wo-init'])
@@ -214,7 +208,7 @@ def test_deploy_config_obj(loo, test_temp_dir, test_root_dir):
 
     assert vindaloo.app.args.cluster == 'cluster1'
 
-    data = json.loads(open(os.path.join(test_temp_dir, 'foo_deployment.yaml'), 'r').read())
+    data = json.loads(open(os.path.join(test_temp_dir, 'foo_deployment.json'), 'r').read())
 
     assert data['apiVersion'] == 'apps/v1'
     assert data['kind'] == 'Deployment'
@@ -244,7 +238,7 @@ def test_deploy_config_obj(loo, test_temp_dir, test_root_dir):
     assert data['metadata']['annotations']['deploy-cluster'] == 'cluster2'
     assert data['spec']['template']['metadata']['annotations']['log-retention'] == '3w'
 
-    data = json.loads(open(os.path.join(test_temp_dir, 'foo_cronjob.yaml'), 'r').read())
+    data = json.loads(open(os.path.join(test_temp_dir, 'foo_cronjob.json'), 'r').read())
     assert data['apiVersion'] == 'batch/v1beta1'
     assert data['kind'] == 'CronJob'
     assert (
@@ -260,12 +254,12 @@ def test_deploy_config_obj(loo, test_temp_dir, test_root_dir):
     }
     assert data['spec']['jobTemplate']['spec']['template']['spec']['containers'][0]['command'] == ['echo', 'z']
 
-    data = json.loads(open(os.path.join(test_temp_dir, 'foo_job.yaml'), 'r').read())
+    data = json.loads(open(os.path.join(test_temp_dir, 'foo_job.json'), 'r').read())
     assert data['apiVersion'] == 'batch/v1'
     assert data['kind'] == 'Job'
     assert data['spec']['template']['metadata']['name'] == 'foo'
 
-    data = json.loads(open(os.path.join(test_temp_dir, 'bar_job.yaml'), 'r').read())
+    data = json.loads(open(os.path.join(test_temp_dir, 'bar_job.json'), 'r').read())
     assert data['apiVersion'] == 'batch/v1'
     assert data['kind'] == 'Job'
     assert data['spec']['template']['metadata']['name'] == 'bar'
