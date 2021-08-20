@@ -1,6 +1,6 @@
 FROM foo-registry.com/debian:stretch
 LABEL maintainer="{{{maintainer}}}"
-LABEL description="SOS adminweb proxy"
+LABEL description="avengers web proxy"
 
 EXPOSE 8000
 
@@ -14,34 +14,14 @@ ENV LC_CTYPE="en_US.UTF-8"
 
 RUN apt-get update && apt-get upgrade -y
 
-RUN apt-get install -y szn-nginx szn-nginx-conf-ssl
+RUN apt-get install -y nginx
 
-RUN groupadd -r --gid=1000 sos-adminweb-proxy && \
-    useradd -r --uid=1000 -b /home/sos-adminweb-proxy -d /home/sos-adminweb-proxy -m -s /bin/bash -g sos-adminweb-proxy sos-adminweb-proxy
-ENV USER="sos-adminweb-proxy"
+RUN groupadd -r --gid=1000 avengers-web-proxy && \
+    useradd -r --uid=1000 -b /home/avengers-web-proxy -d /home/avengers-web-proxy -m -s /bin/bash -g avengers-web-proxy avengers-web-proxy
+ENV USER="avengers-web-proxy"
 
-COPY adminweb-proxy/conf /www/avengers/adminweb-proxy/conf
-COPY adminweb-proxy/static /www/avengers/adminweb-proxy/static
+RUN mkdir -p /srv/http/web
+COPY web-proxy /srv/http/web
 
-COPY adminweb/src/robots.txt /www/avengers/adminweb/www/
-COPY adminweb/templ/fonts /www/avengers/adminweb/www/st/latest/fonts
-COPY adminweb/templ/img /www/avengers/adminweb/www/st/latest/img
-COPY adminweb/templ/player /www/avengers/adminweb/www/st/latest/player
-COPY adminweb/templ/compiled/less/styles.css /www/avengers/adminweb/www/st/latest/compiled/less/
-COPY adminweb/templ/compiled/js /www/avengers/adminweb/www/st/latest/compiled/js
-COPY adminweb/templ/compiled/js-modules /www/avengers/adminweb/www/st/latest/compiled/js-modules
-
-COPY submodules/admin-ico-font/assets/fonts/admin-icons.ttf /www/avengers/adminweb/www/st/latest/fonts/admin-icons.ttf
-COPY submodules/admin-ico-font/assets/fonts/admin-icons.eot /www/avengers/adminweb/www/st/latest/fonts/admin-icons.eot
-COPY submodules/admin-ico-font/assets/fonts/admin-icons.svg /www/avengers/adminweb/www/st/latest/fonts/admin-icons.svg
-COPY submodules/admin-ico-font/assets/fonts/admin-icons.woff /www/avengers/adminweb/www/st/latest/fonts/admin-icons.woff
-
-COPY adminweb-proxy/debian/szn-sos-adminweb-proxy.init /etc/init.d/szn-sos-adminweb-proxy
-
-RUN mkdir /www/avengers/adminweb-proxy/bin
-RUN mkdir -p /www/nginx/var/lib/szn-sos-proxy-body
-RUN mkdir -p /www/nginx/lib/szn-sos-adminweb-proxy-proxy
-RUN ln -s /www/nginx/sbin/nginx /www/avengers/adminweb-proxy/bin/httpd-sos-adminweb-proxy
-
-ENTRYPOINT ["/www/avengers/adminweb-proxy/bin/httpd-sos-adminweb-proxy", "-c", "/www/avengers/adminweb-proxy/conf/nginx-proxy-docker.conf"]
+ENTRYPOINT ["nginx", "-c", "/srv/http/web/conf/nginx-proxy-docker.conf"]
 LABEL version="{{version}}"

@@ -7,7 +7,6 @@ import shutil
 from importlib import import_module
 import json
 import os
-import pkg_resources
 import ssl
 import subprocess
 import sys
@@ -18,6 +17,7 @@ import urllib.request
 import argcomplete
 import pystache
 
+from .convert import get_obj_repr_from_dict
 from .examples import (
     EXAMPLE_VINDALOO_CONF,
     EXAMPLE_BASE,
@@ -52,7 +52,7 @@ NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy', 'edit-secret')
 CONFIG_DIR = 'k8s'
 CHECK_VERSION_URL = 'https://raw.githubusercontent.com/seznam/vindaloo/master/version.json'
 
-VERSION = '3.6.1'
+VERSION = '4.0.0'
 
 
 class RefreshException(Exception):
@@ -69,6 +69,7 @@ class Vindaloo:
         self.config_module = None  # konfigurace aktualne vybraneho prostredi (Dockerfily, deploymenty, porty, ...)
         self.args = None
         self.changed_secrets = {}  # Secrety naplanovane ke zmene
+        self.versions = {}  # Verze imagu
 
     def _am_i_logged_in(self) -> bool:
         """
@@ -117,7 +118,6 @@ class Vindaloo:
         k8s_clusters = k8s_clusters.split(',')
         docker_registry = self._input_text("Docker registry hostname: ")
         image_name = self._input_text("Name of docker repository (for example: avengers/web): ")
-        image_name = self._strip_image_name(image_name)
         ident_label = image_name.split('/')[1]
 
         os.mkdir(CONFIG_DIR)
@@ -160,7 +160,8 @@ class Vindaloo:
         # basic templates (Dockerfile, deployment, service)
         self._create_conf_file(
             '{}/Dockerfile'.format(templates_dir),
-            EXAMPLE_DOCKERFILE
+            EXAMPLE_DOCKERFILE,
+            dict(docker_registry=docker_registry),
         )
         self._create_conf_file(
             '{}/deployment.yaml'.format(templates_dir),
@@ -170,6 +171,13 @@ class Vindaloo:
             '{}/service.yaml'.format(templates_dir),
             EXAMPLE_SERVICE
         )
+
+    def convert_manifest(self):
+        import yaml
+        with open(self.args.manifest, 'r') as fp:
+            manifest_data = yaml.load(fp, Loader=yaml.Loader)
+            res = get_obj_repr_from_dict(manifest_data)
+            self._out(res)
 
     def k8s_select_env(self) -> None:
         """
@@ -191,7 +199,7 @@ class Vindaloo:
 
         self.config_module = self._import_config(dep_env)
         if not self.config_module:
-            self.fail("Environment '{}' does not have configuration.")
+            self.fail(f"Environment '{dep_env}' does not have configuration.")
 
         # prepneme se
         if not self.args.apply_output_dir:
@@ -315,8 +323,7 @@ class Vindaloo:
         if not os.path.isfile("{}/{}.py".format(CONFIG_DIR, env)):
             return None
 
-        versions = json.load(open('{}/versions.json'.format(CONFIG_DIR)))
-        sys.modules['versions'] = versions
+        self.versions = json.load(open('{}/versions.json'.format(CONFIG_DIR)))
         sys.modules['vindaloo'].app = self
         sys.path.insert(0, os.path.abspath(CONFIG_DIR))
         try:
@@ -325,7 +332,9 @@ class Vindaloo:
                 del sys.modules[env]
             res_mod = import_module(env)
             return res_mod
-        except ModuleNotFoundError:
+        except ModuleNotFoundError as ex:
+            if env not in str(ex):
+                self.fail(f"Error importing env configuration: {ex}")
             return None
         finally:
             sys.path = sys.path[1:]
@@ -728,7 +737,10 @@ class Vindaloo:
         else:
             temp_file = tempfile.NamedTemporaryFile("wb")
 
-        temp_file.write(bytes(obj.to_json(self), 'utf-8'))
+        temp_file.write(bytes(
+            json.dumps(obj.serialize(app=self), indent=4),
+            'utf-8'
+        ))
         temp_file.seek(0)
 
         # Optionally offers edit
@@ -932,7 +944,9 @@ class Vindaloo:
 
         if command == "init":
             self.init_env()
-        if command == "build":
+        elif command == "convert-manifest":
+            self.convert_manifest()
+        elif command == "build":
             self.build_images()
         elif command == "pull":
             self.pull_images()
@@ -995,6 +1009,9 @@ class Vindaloo:
 
         init_parser = subparsers.add_parser('init', help='prepares project for Vindaloo')
         init_parser.add_argument('dir', help='project directory')
+
+        convert_parser = subparsers.add_parser('convert-manifest', help='convert yaml manifest into Vindaloo config')
+        convert_parser.add_argument('manifest', help='manifest file')
 
         build_parser = subparsers.add_parser('build', help='builds Docker images (all of them)')
         build_parser.add_argument(
@@ -1169,3 +1186,6 @@ class Vindaloo:
 def run():
     tool = Vindaloo()
     tool.main()
+
+
+app = Vindaloo()

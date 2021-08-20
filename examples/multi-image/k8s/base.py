@@ -1,33 +1,35 @@
-import versions
+import vindaloo
+
+versions = vindaloo.app.versions
 
 MAINTAINER = "Daniel Milde <daniel.milde@firma.seznam.cz>"
 
 CONFIG_WEB = {
     'maintainer': MAINTAINER,
-    'version': versions['avengers/adminweb'],
-    'image_name': 'avengers/adminweb',
-    'https_proxy': "http://proxy.dev.dszn.cz:3128",
+    'version': versions['avengers/web'],
+    'image_name': 'avengers/web',
+    'https_proxy': "http://proxy.com:3128",
 }
 CONFIG_PROXY = {
     'maintainer': MAINTAINER,
-    'version': versions['avengers/adminweb-proxy'],
-    'image_name': 'avengers/adminweb-proxy',
+    'version': versions['avengers/web-proxy'],
+    'image_name': 'avengers/web-proxy',
 }
 CONFIG_OUTAGE = {
     'maintainer': MAINTAINER,
-    'version': versions['avengers/adminweb-outage'],
-    'image_name': 'avengers/adminweb-outage',
+    'version': versions['avengers/web-outage'],
+    'image_name': 'avengers/web-outage',
 }
 
 DEPLOYMENT_ADMINWEB = {
     'replicas': 2,
-    'ident_label': "sos-adminweb",
+    'ident_label': "avengers-web",
     'image_web': "{}:{}".format(CONFIG_WEB['image_name'], CONFIG_WEB['version']),
     'image_proxy': "{}:{}".format(CONFIG_PROXY['image_name'], CONFIG_PROXY['version']),
     'env': [
         {
             'key': 'ENVIRONMENT',
-            'val': "sos-stable"
+            'val': "avengers-stable"
         },
         {
             'key': 'PORT',
@@ -48,14 +50,14 @@ DEPLOYMENT_ADMINWEB = {
 
 DEPLOYMENT_OUTAGE = {
     'replicas': 1,
-    'ident_label': "sos-adminweb-outage",
+    'ident_label': "avengers-web-outage",
     'image': "{}:{}".format(CONFIG_OUTAGE['image_name'], CONFIG_OUTAGE['version']),
     'port': "8000",
 }
 
 SERVICE = {
-    'app_name': "sos-adminweb",
-    'ident_label': "sos-adminweb",
+    'app_name': "avengers-web",
+    'ident_label': "avengers-web",
     'ports': [
         {'port': 8000, 'name': 'http'},
     ]
@@ -72,7 +74,7 @@ DOCKER_FILES = [
         'pre_build_msg': """Prosim nejdriv spust (v Dockeru):
 
 make clean compile-messages
-cd adminweb; make rights compile-production
+cd web; make rights compile-production
 """
     },
     {
@@ -82,7 +84,7 @@ cd adminweb; make rights compile-production
         'pre_build_msg': """Prosim nejdriv spust (v Dockeru):
 
 make clean
-cd adminweb; make compile-production
+cd web; make compile-production
 """
     },
     {

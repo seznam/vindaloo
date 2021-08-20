@@ -10,22 +10,22 @@ spec:
       template:
         metadata:
           labels:
-            app: sos-robot
+            app: avengers-robot
         spec:
           restartPolicy: Never
           volumes:
           - name: localconfig
             secret:
-              secretName: sos-core-local-conf
+              secretName: avengers-local-conf
           - name: robotpasswords
             secret:
-              secretName: sos-robot-pass-conf
+              secretName: avengers-robot-pass-conf
           - name: robotconf
             configMap:
-              name: sos-robot-conf
+              name: avengers-robot-conf
               items:
-              - key: admin-robot.env.conf
-                path: admin-robot.conf.dev
+              - key: robot.env.conf
+                path: robot.conf.dev
           containers:
           - name: {{ident_label}}
             image: {{registry}}/{{image}}
@@ -37,14 +37,14 @@ spec:
             {{/env}}
             volumeMounts:
             - name: localconfig
-              mountPath: "/www/avengers/core/conf/app.local.conf"
+              mountPath: "/home/avengers/conf/app.local.conf"
               subPath: "app.local.conf"
             - name: robotpasswords
-              mountPath: "/www/avengers/admin-robot/conf/admin-robot.passwd.conf"
-              subPath: "admin-robot.passwd.conf"
+              mountPath: "/home/avengers/robot/conf/robot.passwd.conf"
+              subPath: "robot.passwd.conf"
             - name: robotconf
-              mountPath: "/www/avengers/admin-robot/conf/admin-robot.conf.dev"
-              subPath: admin-robot.conf.dev
+              mountPath: "/home/avengers/robot/conf/robot.conf.dev"
+              subPath: robot.conf.dev
             resources:
               requests:
                 cpu: "0.5"

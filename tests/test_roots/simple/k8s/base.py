@@ -1,4 +1,6 @@
-import versions
+import vindaloo
+
+versions = vindaloo.app.versions
 
 CONFIG = {
     'maintainer': "Test Test <test.test@firma.seznam.cz>",

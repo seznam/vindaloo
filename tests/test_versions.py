@@ -38,7 +38,7 @@ def test_versions_match(capsys):
         'config',
         'use-context',
     ]
-    assert loo.cmd.call_args_list[1][0][0][3] in ('foo-dev:cluster1', 'foo-dev:cluster2')  # nezname poradi
+    assert loo.cmd.call_args_list[1][0][0][3] == 'foo-dev:cluster1'
     assert loo.cmd.call_args_list[2][0][0] == [
         'kubectl',
         'get',
@@ -51,7 +51,7 @@ def test_versions_match(capsys):
         'config',
         'use-context',
     ]
-    assert loo.cmd.call_args_list[3][0][0][3] in ('foo-dev:cluster1', 'foo-dev:cluster2')  # nezname poradi
+    assert loo.cmd.call_args_list[3][0][0][3] == 'foo-dev:cluster2'
     assert loo.cmd.call_args_list[4][0][0] == [
         'kubectl',
         'get',
@@ -72,7 +72,6 @@ def test_versions_not_match(capsys):
     sys.argv = ['vindaloo', 'versions']
 
     def x(*args, **kwargs):
-        print(args, kwargs)
         z = mock.Mock()
         z.returncode = 0
         return z
@@ -105,7 +104,7 @@ def test_versions_not_match(capsys):
         'config',
         'use-context',
     ]
-    assert loo.cmd.call_args_list[1][0][0][3] in ('foo-dev:cluster1', 'foo-dev:cluster2')  # unknown order
+    assert loo.cmd.call_args_list[1][0][0][3] == 'foo-dev:cluster1'
     assert loo.cmd.call_args_list[2][0][0] == [
         'kubectl',
         'get',
@@ -118,7 +117,7 @@ def test_versions_not_match(capsys):
         'config',
         'use-context',
     ]
-    assert loo.cmd.call_args_list[3][0][0][3] in ('foo-dev:cluster1', 'foo-dev:cluster2')  # unknown order
+    assert loo.cmd.call_args_list[3][0][0][3] == 'foo-dev:cluster2'
     assert loo.cmd.call_args_list[4][0][0] == [
         'kubectl',
         'get',
@@ -139,7 +138,6 @@ def test_versions_json(capsys):
     sys.argv = ['vindaloo', 'versions', '--json']
 
     def x(*args, **kwargs):
-        print(args, kwargs)
         z = mock.Mock()
         z.returncode = 0
         return z
@@ -167,7 +165,5 @@ def test_versions_json(capsys):
     assert data['dev']['test/bar']['local'] == '2.0.0'
 
     assert data['dev']['test/bar']['remote']['cluster1'] == '2.0.0'
-
-    # py 3.5 has no fixed dict ordering, so we don't know if c1 or c2 will be first
-    assert data['dev']['test/foo']['remote']['cluster1'] in ('1.0.0', '0.0.9')
-    assert data['dev']['test/foo']['remote']['cluster2'] in ('1.0.0', '0.0.9')
+    assert data['dev']['test/foo']['remote']['cluster1'] == '1.0.0'
+    assert data['dev']['test/foo']['remote']['cluster2'] == '0.0.9'

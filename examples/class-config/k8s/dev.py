@@ -1,6 +1,7 @@
+import vindaloo
 from base import *
 
-ENV_PUBLIC['ENVIRONMENT'] = "avengers-dev"
-ENV_PRIVATE['ENVIRONMENT'] = "avengers-dev"
+DEPLOYMENT_PUBLIC.spec.template.spec.containers['avengers-server'].env.ENVIRONMENT = "avengers-dev"
+DEPLOYMENT_PRIVATE.spec.template.spec.containers['avengers-server'].env.ENVIRONMENT = "avengers-dev"
 
-SERVICE_PUBLIC.ports['rpc']['nodePort'] = 30007
+SERVICE_PUBLIC.spec.ports['rpc']['nodePort'] = 30007

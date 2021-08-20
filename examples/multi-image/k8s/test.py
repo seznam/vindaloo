@@ -5,7 +5,7 @@ DEPLOYMENT_ADMINWEB.update({
     'env': [
         {
             'key': 'ENVIRONMENT',
-            'val': "sos-test"
+            'val': "avengers-test"
         },
         {
             'key': 'PORT',
@@ -13,11 +13,11 @@ DEPLOYMENT_ADMINWEB.update({
         },
         {
             'key': 'http_proxy',
-            'val': "http://proxy.dev.dszn.cz:3128",
+            'val': "http://proxy.com:3128",
         },
         {
             'key': 'https_proxy',
-            'val': "http://proxy.dev.dszn.cz:3128",
+            'val': "http://proxy.com:3128",
         },
     ],
 })

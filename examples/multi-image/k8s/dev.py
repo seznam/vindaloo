@@ -5,7 +5,7 @@ DEPLOYMENT_ADMINWEB.update({
     'env': [
         {
             'key': 'ENVIRONMENT',
-            'val': "sos-dev"
+            'val': "avengers-dev"
         },
         {
             'key': 'PORT',

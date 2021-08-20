@@ -1,10 +1,24 @@
-import versions
+import vindaloo
 from vindaloo.objects import Deployment, Service, CronJob, Job
+
+versions = vindaloo.app.versions
 
 CONFIG = {
     'maintainer': "Foo <test@foo.com>",
     'version': versions['test/foo'],
     'image_name': 'test/foo',
+}
+
+ENV = {
+    'ENV': "stable",
+    'DB_PASSWORD': {
+        'valueFrom': {
+            'secretKeyRef': {
+                'name': 'db-master',
+                'key': 'password',
+            }
+        }
+    },
 }
 
 DEPLOYMENT = Deployment(
@@ -27,18 +41,12 @@ DEPLOYMENT = Deployment(
             'image': "{}:{}".format(CONFIG['image_name'], CONFIG['version']),
             'ports': {
                 'proxy': 5001,
+                'server': {
+                    'protocol': 'UDP',
+                    'containerPort': 5000,
+                }
             },
-            'env': {
-                'ENV': "stable",
-                'DB_PASSWORD': {
-                    'valueFrom': {
-                        'secretKeyRef': {
-                            'name': 'db-master',
-                            'key': 'password',
-                        }
-                    }
-                },
-            },
+            'env': ENV,
             'volumeMounts': {
                 'cert': [
                     {
@@ -62,10 +70,10 @@ DEPLOYMENT = Deployment(
             },
         },
     },
-    something={
-        'foo': 'boo',
-    }
+    annotations={"deploy-cluster": "cluster1"},
+    spec_annotations={"log-retention": "3w"}
 )
+DEPLOYMENT.spec.something = {'foo': 'boo'}
 
 CRONJOB = CronJob(
     name="foo",
@@ -90,6 +98,12 @@ CRONJOB = CronJob(
                             'key': 'password',
                         }
                     }
+                },
+            },
+            'volumeMounts': {
+                'localconfig': {
+                    'mountPath': "/app.local.conf",
+                    'subPath': "app.local.conf",
                 },
             },
         },
@@ -126,7 +140,8 @@ JOB1 = Job(
 
 JOB2 = JOB1.clone()
 JOB2.name = 'bar'
-JOB2.containers['foo']['command'] = ['echo', 'y']
+JOB2.spec.template.metadata.name = 'bar'
+JOB2.spec.template.spec.containers['foo']['command'] = ['echo', 'y']
 
 SERVICE = Service(
     name="foo",
@@ -135,19 +150,9 @@ SERVICE = Service(
         'app': "foo",
     },
     ports={
-        'http': {'port': 5001, 'protocol': 'TCP'},
-    }
-)
-
-LOADBALANCER = Service(
-    name="foo-labrador",
-    selector={
-        'app': "foo",
-    },
-    ports={
         'http': {'port': 5001, 'targetPort': 5001, 'protocol': 'TCP'},
     },
-    cluster_ip="None",
+    annotations={'loadbalancer': "enabled"},
 )
 
 DOCKER_FILES = [
@@ -164,6 +169,5 @@ K8S_OBJECTS = {
     "job": [JOB1, JOB2],
     "service": [
         SERVICE,
-        LOADBALANCER,
     ]
 }

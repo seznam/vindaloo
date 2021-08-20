@@ -5,7 +5,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: sos-robot
+      app: avengers-robot
   env:
     - name: KUBERNETES_CLUSTER
       value: "ko1"

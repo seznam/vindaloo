@@ -17,9 +17,9 @@ spec:
       volumes:
       - name: localconfig
         secret:
-          secretName: sos-core-local-conf
+          secretName: avengers-local-conf
       containers:
-      - name: sos-adminweb-proxy
+      - name: avengers-web-proxy
         image: {{registry}}/{{image_proxy}}
         imagePullPolicy: IfNotPresent
         ports:
@@ -31,12 +31,12 @@ spec:
           requests:
             cpu: "0.1"
             memory: 50Mi
-      - name: sos-adminweb
+      - name: avengers-web
         image: {{registry}}/{{image_web}}
         imagePullPolicy: IfNotPresent
         volumeMounts:
         - name: localconfig
-          mountPath: "/www/avengers/core/conf/app.local.conf"
+          mountPath: "/srv/http/web/conf/app.local.conf"
           subPath: "app.local.conf"
         ports:
         - containerPort: {{port_web}}

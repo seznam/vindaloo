@@ -1,10 +1,12 @@
-import versions
+import vindaloo
 from vindaloo.objects import Deployment, Service
+
+versions = vindaloo.app.versions
 
 CONFIG = {
     'maintainer': "Avengers <avengers@domain.com>",
-    'version': versions['avengers/adminserver'],
-    'image_name': 'avengers/adminserver',
+    'version': versions['avengers/server'],
+    'image_name': 'avengers/server',
 }
 
 ENV_PUBLIC = {
@@ -20,7 +22,7 @@ ENV_PRIVATE = {
 }
 
 DEPLOYMENT_PUBLIC = Deployment(
-    name="avengers-adminserver",
+    name="avengers-server",
     replicas=4,
     annotations={
         'team': "avengers@domain.com",
@@ -33,7 +35,7 @@ DEPLOYMENT_PUBLIC = Deployment(
         }
     },
     containers={
-        'avengers-adminserver': {
+        'avengers-server': {
             'image': "{}:{}".format(CONFIG['image_name'], CONFIG['version']),
             'ports': {
                 'proxy': 3550,
@@ -85,16 +87,14 @@ DEPLOYMENT_PUBLIC = Deployment(
 )
 
 DEPLOYMENT_PRIVATE = DEPLOYMENT_PUBLIC.clone()
-DEPLOYMENT_PRIVATE.name = "avengers-adminserver-private"
-DEPLOYMENT_PRIVATE.metadata = {'name': DEPLOYMENT_PRIVATE.name}
-DEPLOYMENT_PRIVATE.labels = {'app': DEPLOYMENT_PRIVATE.name}
-DEPLOYMENT_PRIVATE.env = ENV_PRIVATE
+DEPLOYMENT_PRIVATE.set_name("avengers-server-private")
+DEPLOYMENT_PRIVATE.spec.template.spec.containers['avengers-server']['env'] = ENV_PRIVATE
 
 SERVICE_PUBLIC = Service(
-    name="avengers-adminserver",
+    name="avengers-server",
     service_type="NodePort",
     selector={
-        'app': "avengers-adminserver",
+        'app': "avengers-server",
     },
     ports={
         'rpc': {'port': 3550, 'protocol': 'TCP'},
@@ -102,9 +102,7 @@ SERVICE_PUBLIC = Service(
 )
 
 SERVICE_PRIVATE = SERVICE_PUBLIC.clone()
-SERVICE_PRIVATE.name = "avengers-adminserver-private"
-SERVICE_PRIVATE.metadata = {'name': SERVICE_PRIVATE.name}
-SERVICE_PRIVATE.selector['app'] = "avengers-adminserver-private"
+SERVICE_PRIVATE.set_name("avengers-server-private")
 
 DOCKER_FILES = [
     {
