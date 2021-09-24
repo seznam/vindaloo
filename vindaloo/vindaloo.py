@@ -209,9 +209,6 @@ class Vindaloo:
         for obj_type in K8S_OBJECT_TYPES:
             if obj_type not in self.config_module.K8S_OBJECTS:
                 continue  # Pokud tenhle typ nema tak jedeme dal
-            if obj_type == 'configmap':
-                self.deploy_configmaps(self.config_module.K8S_OBJECTS[obj_type])
-                continue
 
             for yaml_conf in self.config_module.K8S_OBJECTS[obj_type]:
                 if isinstance(yaml_conf, JsonSerializable):
@@ -221,7 +218,7 @@ class Vindaloo:
                     # pridame registry
                     yaml_conf['config']['registry'] = self.registry
 
-                    temp_file = self._create_file(yaml_conf['template'], yaml_conf['config'], from_templates=True)
+                    temp_file = self.create_file(yaml_conf['template'], yaml_conf['config'], from_templates=True)
                     ident = yaml_conf['config'].get('ident_label', 'unnamed')
 
                 if not temp_file:
@@ -243,7 +240,7 @@ class Vindaloo:
 
     def kubectl_apply(self, filename: str, name: str = 'unnamed', object_type: str = 'k8s_object') -> bool:
         """
-        Apply k8s yaml or save into output dir, when specified on command line.
+        Apply k8s JSON or save into output dir, when specified on command line.
         """
         if self.args.dryrun:
             self._out("CALL: kubectl apply -f {}".format(filename))
@@ -260,7 +257,7 @@ class Vindaloo:
 
             dest_filename = os.path.join(
                 self.args.apply_output_dir,
-                "{}{}_{}.yaml".format(prefix_, name, object_type)
+                "{}{}_{}.json".format(prefix_, name, object_type)
             )
             shutil.copy(filename, dest_filename)
             self._out("{} created.".format(dest_filename))
@@ -268,36 +265,6 @@ class Vindaloo:
         else:
             res = self.cmd(["kubectl", "apply", "-f", filename])
             return res.returncode == 0
-
-    def deploy_configmaps(self, configmaps):
-        """
-        For each configmap collects files and creates config map in k8s
-        """
-        for cm in configmaps:
-            name = cm['name']
-            files = [
-                (
-                    item['key'],
-                    self._create_file(item['file'], item.get('config', {}), from_templates=False, no_edit=True)
-                ) for item in cm['items']
-            ]
-            if files:
-
-                mapped = ["--from-file={}={}".format(x[0], x[1].name) for x in files]
-                self._out('Creating config map {}...'.format(name))
-                res = self.cmd(["kubectl", "create", "configmap", name, *mapped, "-o", "yaml", "--dry-run"], get_stdout=True)
-                assert res.returncode == 0
-
-                config_map_file = tempfile.NamedTemporaryFile("wb")
-                config_map_file.write(res.stdout)
-                config_map_file.seek(0)
-
-                # Optionally offers edit
-                if not self.args.noninteractive:
-                    if self._confirm("File {} was created. Do you want to modify it?".format(name), default="n"):
-                        self._open_in_editor(config_map_file)
-
-                assert self.kubectl_apply(config_map_file.name, name=name, object_type='configmap')
 
     def _import_envs_config(self) -> None:
         """
@@ -684,18 +651,17 @@ class Vindaloo:
             assert self._cmd_check(["kubectl", "config", "use-context", context], self.args.quiet)
             self._out("Environment changed to {} ({})".format(env, context))
 
-    def _create_file(
+    def create_file(
             self,
             template_file_name: str,
             conf: Dict,
             force_dest_file: str = None,
-            from_templates: bool=False,
+            from_templates: bool = False,
             no_edit=False
     ) -> BinaryIO:
         """
         Creates Dockerfile/yaml file using given template and config dict.
         """
-        data = ""
         if from_templates:
             src_file = "{}/templates/{}".format(CONFIG_DIR, template_file_name)
         else:
@@ -709,9 +675,9 @@ class Vindaloo:
             data = renderer.render(template, conf)
 
         if force_dest_file:
-            temp_file = open(force_dest_file, "wb")
+            temp_file = open(force_dest_file, "w+b")
         else:
-            temp_file = tempfile.NamedTemporaryFile("wb")
+            temp_file = tempfile.NamedTemporaryFile("w+b")
 
         temp_file.write(bytes(data, 'utf-8'))
         temp_file.seek(0)
@@ -785,7 +751,7 @@ class Vindaloo:
         # config with includes
         tmp_config = self._get_enriched_config_context(conf)
 
-        self._create_file(conf['template'], tmp_config, force_dest_file="Dockerfile", from_templates=True)
+        self.create_file(conf['template'], tmp_config, force_dest_file="Dockerfile", from_templates=True)
 
     def _check_version(self):
         try:

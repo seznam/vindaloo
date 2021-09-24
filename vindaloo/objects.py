@@ -1,5 +1,6 @@
+import base64
 import copy
-from typing import Union, Dict as DictType, List as ListType
+from typing import Any, Union, Dict as DictType, List as ListType
 
 __all__ = (
     'Dict',
@@ -162,6 +163,8 @@ class ContainersMixin:
 
 class KubernetesManifestMixin(JsonSerializable):
     __slots__ = ('name', 'metadata', 'spec')
+    obj_type = ""
+    api_version = ""
 
     def __init__(self, metadata, annotations):
         metadata = metadata or {}
@@ -440,3 +443,82 @@ class Service(KubernetesManifestMixin):
     def set_name(self, name):
         self.name = name
         self.metadata.name = name
+
+
+class ConfigMap(KubernetesManifestMixin):
+    obj_type = 'configmap'
+    api_version = 'v1'
+    __slots__ = (
+        'name', 'metadata', 'spec', 'data', 'binary_data', 'immutable',
+    )
+
+    def __init__(
+        self,
+        name: str,
+        data: DictType[str, Union[None, int, float, str, dict]] = None,
+        binary_data: DictType[str, Union[bytes, dict]] = None,
+        immutable: bool = False,
+        annotations: DictType[str, str] = None,
+        metadata: DictType[str, Any] = None,
+    ):
+        super().__init__(metadata, annotations)
+        self.set_name(name)
+        self.data = data or {}
+        self.binary_data = binary_data or {}
+        self.immutable = immutable
+
+    def set_name(self, name):
+        self.name = name
+        self.metadata.name = name
+
+    @staticmethod
+    def _binary_value_prep(value: bytes) -> str:
+        return base64.encodebytes(value).decode()
+
+    def _file_prep(self, app, filename: str, config: DictType, is_binary: bool) -> str:
+        if not filename:
+            raise ValueError(f'Value of a config key can be either atomic value or dict with a `file` key.')
+
+        if is_binary:
+            with open(f'k8s/{filename}', 'br') as file:
+                return self._binary_value_prep(file.read())
+        else:
+            temp_file = app.create_file(filename, config, no_edit=True)
+            file_content = temp_file.read()
+            temp_file.close()
+            return file_content.decode('utf-8')
+
+    def prepare_data(self, data: DictType[str, Any], app, is_binary: bool = False) -> DictType[str, str]:
+        new_data = {}
+        for key, value in data.items():
+            if isinstance(value, dict):
+                new_data[key] = self._file_prep(
+                    app,
+                    value.get('file'),
+                    value.get('config', {}),
+                    is_binary,
+                )
+            else:
+                if is_binary:
+                    value = self._binary_value_prep(value)
+                new_data[key] = value
+        return new_data
+
+    def serialize(self, *args, **kwargs):
+        keys_intersection = set(self.data.keys()) & set(self.binary_data.keys())
+        if keys_intersection:
+            raise ValueError(f"`data` and `binary_data` cannot contain same keys: {keys_intersection}")
+
+        res = {
+            'apiVersion': self.api_version,
+            'kind': 'ConfigMap',
+            'metadata': self.metadata.serialize(*args, **kwargs),
+        }
+        if self.data:
+            res['data'] = self.prepare_data(self.data, kwargs.get('app'))
+        if self.binary_data:
+            res['binary_data'] = self.prepare_data(self.binary_data, kwargs.get('app'), is_binary=True)
+        if self.immutable:
+            res['immutable'] = True
+
+        return res
