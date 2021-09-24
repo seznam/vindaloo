@@ -1,3 +1,40 @@
+# Version 4.1.0
+
+* added support for ConfigMaps objects
+
+```python
+from vindaloo.objects import ConfigMap
+
+CONTEXT = {'variable_1': 'This value depends on the selected environment.'}
+
+CONFIG_MAP = ConfigMap(
+    name='test-config-map',
+    metadata={
+        'labels': {'custom-labels': '123'},
+        'annotations': {'custom-annotations': '...'},
+    },
+    data={
+        'simple_config_key': 123,
+        'file_config_key': {
+            'file': 'templates/file_config.conf',
+            'config': CONTEXT,
+        },
+    },
+    binary_data={
+        'simple_binary_key': b'\x76\x69\x6b\x79',
+        'binary_file_config_key': {
+            'file': 'templates/binary_config.conf',
+        },
+    },
+      immutable=True,
+)
+
+K8S_OBJECTS = {
+    "configmap": [CONFIG_MAP],
+}
+```
+
+* orphaned `pystache` library replaced with `chevron`
 
 # Version 4.0.0
 
