@@ -5,7 +5,7 @@ name = "pypi"
 
 [packages]
 argcomplete = ">=1.9.5"
-pystache = "*"
+chevron = "*"
 pyyaml = "*"
 
 [dev-packages]

@@ -43,7 +43,7 @@ Why to use Vindaloo and not X
 
 - can be distributed as one executable file, no need to install
 - configuration using Python files which implies little code duplication and huge expressivity
-- powerful templating using Mustache language (pystache)
+- powerful templating using Mustache language (chevron)
 - can include parts of templates in Dockerfiles
 - can build multiple images from one component
 - can change docker context dir for building an image

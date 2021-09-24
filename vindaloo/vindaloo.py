@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Set, BinaryIO, Sequence
 import urllib.request
 
 import argcomplete
-import pystache
+import chevron
 
 from .convert import get_obj_repr_from_dict
 from .examples import (
@@ -668,11 +668,8 @@ class Vindaloo:
             src_file = "{}/{}".format(CONFIG_DIR, template_file_name)
 
         with open(src_file, "r") as template_file:
-            renderer = pystache.Renderer()
-            # Parse the tamplate
-            template = pystache.parse(template_file.read())
             # render using given variables
-            data = renderer.render(template, conf)
+            data = chevron.render(template_file, conf)
 
         if force_dest_file:
             temp_file = open(force_dest_file, "w+b")
@@ -733,9 +730,7 @@ class Vindaloo:
             for key, rel_path in conf['includes'].items():
                 assert os.path.exists(rel_path)
                 with open(rel_path, "r") as include_file:
-                    renderer = pystache.Renderer()
-                    template = pystache.parse(include_file.read())
-                    data = renderer.render(template, conf['config'])
+                    data = chevron.render(include_file, conf['config'])
                     new_context.setdefault('includes', {})[key] = data
 
         # Append config

@@ -39,7 +39,7 @@ Proč použít právě Lů a ne jiný nástroj
 
 - distribuuje se jako jeden spustitelný soubor, netřeba instalace
 - konfiguruje se pomocí Pythoních souborů a umožňuje tak velmi malou duplikaci kódu a značnou expresivitu
-- umožňuje šablonování pomocí jazyka Mustache (pystache)
+- umožňuje šablonování pomocí jazyka Mustache (chevron)
 - umožňuje includování částí šablon v Dockerfile
 - umí z jedné komponenty vybuildit několik docker imagů
 - umí měnit kontext pro build docker image
