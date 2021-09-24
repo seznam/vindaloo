@@ -1,6 +1,7 @@
-import versions
-
+import vindaloo
 from vindaloo.objects import ConfigMap
+
+versions = vindaloo.app.versions
 
 
 CONTEXT = {'variable_1': 'This value depends on the selected environment.'}

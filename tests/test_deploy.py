@@ -265,7 +265,7 @@ def test_deploy_config_obj(loo, test_temp_dir, test_root_dir):
     assert data['spec']['template']['metadata']['name'] == 'bar'
     assert data['spec']['template']['spec']['terminationGracePeriodSeconds'] == 30
 
-    data = json.loads(open(os.path.join(test_temp_dir, 'foo_service.yaml'), 'r').read())
+    data = json.loads(open(os.path.join(test_temp_dir, 'foo_service.json'), 'r').read())
     assert data['spec']['type'] == 'NodePort'
     assert data['spec']['ports'][0]['nodePort'] == 30666
     assert data['spec']['ports'][0]['targetPort'] == 5001

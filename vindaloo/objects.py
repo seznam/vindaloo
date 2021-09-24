@@ -1,6 +1,6 @@
 import base64
 import copy
-from typing import Union, Dict as DictType, List as ListType
+from typing import Any, Union, Dict as DictType, List as ListType
 
 __all__ = (
     'Dict',
@@ -12,8 +12,6 @@ __all__ = (
     'Job',
     'Service',
 )
-
-from typing import Dict, Any, Union
 
 
 class JsonSerializable:
@@ -165,6 +163,8 @@ class ContainersMixin:
 
 class KubernetesManifestMixin(JsonSerializable):
     __slots__ = ('name', 'metadata', 'spec')
+    obj_type = ""
+    api_version = ""
 
     def __init__(self, metadata, annotations):
         metadata = metadata or {}
@@ -445,34 +445,37 @@ class Service(KubernetesManifestMixin):
         self.metadata.name = name
 
 
-class ConfigMap(JsonSerializable):
+class ConfigMap(KubernetesManifestMixin):
     obj_type = 'configmap'
     api_version = 'v1'
+    __slots__ = (
+        'name', 'metadata', 'spec', 'data', 'binary_data', 'immutable',
+    )
 
     def __init__(
         self,
         name: str,
-        data: Dict[str, Union[None, int, float, str, dict]] = None,
-        binary_data: Dict[str, Union[bytes, dict]] = None,
+        data: DictType[str, Union[None, int, float, str, dict]] = None,
+        binary_data: DictType[str, Union[bytes, dict]] = None,
         immutable: bool = False,
-        annotations: Dict[str, str] = None,
-        metadata: Dict[str, Any] = None,
+        annotations: DictType[str, str] = None,
+        metadata: DictType[str, Any] = None,
     ):
-        super().__init__()
-        self.name = name
-        self.metadata = metadata or {}
-        self.annotations = annotations or {}
-        self.metadata['name'] = self.name
-        self.metadata['annotations'] = self.annotations
+        super().__init__(metadata, annotations)
+        self.set_name(name)
         self.data = data or {}
         self.binary_data = binary_data or {}
         self.immutable = immutable
+
+    def set_name(self, name):
+        self.name = name
+        self.metadata.name = name
 
     @staticmethod
     def _binary_value_prep(value: bytes) -> str:
         return base64.encodebytes(value).decode()
 
-    def _file_prep(self, app, filename: str, config: Dict, is_binary: bool) -> str:
+    def _file_prep(self, app, filename: str, config: DictType, is_binary: bool) -> str:
         if not filename:
             raise ValueError(f'Value of a config key can be either atomic value or dict with a `file` key.')
 
@@ -485,7 +488,7 @@ class ConfigMap(JsonSerializable):
             temp_file.close()
             return file_content.decode('utf-8')
 
-    def prepare_data(self, data: Dict[str, Any], app, is_binary: bool = False) -> Dict[str, str]:
+    def prepare_data(self, data: DictType[str, Any], app, is_binary: bool = False) -> DictType[str, str]:
         new_data = {}
         for key, value in data.items():
             if isinstance(value, dict):
@@ -501,21 +504,21 @@ class ConfigMap(JsonSerializable):
                 new_data[key] = value
         return new_data
 
-    def to_json(self, app) -> str:
+    def serialize(self, *args, **kwargs):
         keys_intersection = set(self.data.keys()) & set(self.binary_data.keys())
         if keys_intersection:
-            app.fail(f"`data` and `binary_data` cannot contain same keys: {keys_intersection}")
+            raise ValueError(f"`data` and `binary_data` cannot contain same keys: {keys_intersection}")
 
         res = {
             'apiVersion': self.api_version,
             'kind': 'ConfigMap',
-            'metadata': self.metadata,
+            'metadata': self.metadata.serialize(*args, **kwargs),
         }
         if self.data:
-            res['data'] = self.prepare_data(self.data, app)
+            res['data'] = self.prepare_data(self.data, kwargs.get('app'))
         if self.binary_data:
-            res['binary_data'] = self.prepare_data(self.binary_data, app, is_binary=True)
+            res['binary_data'] = self.prepare_data(self.binary_data, kwargs.get('app'), is_binary=True)
         if self.immutable:
             res['immutable'] = True
 
-        return json.dumps(res, indent=4)
+        return res
