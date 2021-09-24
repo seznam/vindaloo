@@ -187,9 +187,9 @@ def test_deploy_to_outdir(loo, test_temp_dir):
             'another_config=one,two,three\n'
             'template_config=This value depends on the selected environment.\n'
         )
-        assert base64.decodebytes(configmap['binary_data']['simple_binary_key'].encode()) == b'\x76\x69\x6b\x79'
+        assert base64.decodebytes(configmap['binaryData']['simple_binary_key'].encode()) == b'\x76\x69\x6b\x79'
         with open('tests/test_roots/configmap/k8s/templates/binary_config.conf', 'br') as binary_file:
-            base64_content = configmap['binary_data']['binary_file_config_key']
+            base64_content = configmap['binaryData']['binary_file_config_key']
             assert base64.decodebytes(base64_content.encode()) == binary_file.read()
 
 

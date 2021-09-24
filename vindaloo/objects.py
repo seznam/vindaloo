@@ -501,7 +501,7 @@ class ConfigMap(KubernetesManifestMixin):
             else:
                 if is_binary:
                     value = self._binary_value_prep(value)
-                new_data[key] = value
+                new_data[key] = str(value)
         return new_data
 
     def serialize(self, *args, **kwargs):
@@ -517,7 +517,7 @@ class ConfigMap(KubernetesManifestMixin):
         if self.data:
             res['data'] = self.prepare_data(self.data, kwargs.get('app'))
         if self.binary_data:
-            res['binary_data'] = self.prepare_data(self.binary_data, kwargs.get('app'), is_binary=True)
+            res['binaryData'] = self.prepare_data(self.binary_data, kwargs.get('app'), is_binary=True)
         if self.immutable:
             res['immutable'] = True
 
