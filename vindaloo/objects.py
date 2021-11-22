@@ -6,6 +6,7 @@ __all__ = (
     'Dict',
     'List',
     'PortsList',
+    'ConfigMap',
     'Container',
     'Deployment',
     'CronJob',

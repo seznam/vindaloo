@@ -1,3 +1,7 @@
+# Version 4.1.1
+
+* fix: `ConfigMap` added to `__all__` in `objects.py`
+
 # Version 4.1.0
 
 * added support for ConfigMaps objects
