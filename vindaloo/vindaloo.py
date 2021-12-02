@@ -50,6 +50,7 @@ SUCCESS_REPLY = ("Y", "y", "a", "A")
 ENVS_CONFIG_NAME = 'vindaloo_conf'
 NEEDS_K8S_LOGIN = ('versions', 'deploy', 'build-push-deploy', 'edit-secret')
 CONFIG_DIR = 'k8s'
+GIT_HASH_PLACEHOLDER = '{{git}}'
 CHECK_VERSION_URL = 'https://raw.githubusercontent.com/seznam/vindaloo/master/version.json'
 
 VERSION = '4.1.1'
@@ -282,6 +283,26 @@ class Vindaloo:
             # try parent dir.
             dir = os.path.abspath(os.path.join(dir, '..'))
 
+    def _load_versions(self):
+        """
+        Loads image versions from `versions.json`
+        """
+        if self.versions:
+            return
+
+        with open('{}/versions.json'.format(CONFIG_DIR)) as fp:
+            content = fp.read()
+            if GIT_HASH_PLACEHOLDER in content:
+                res = self.cmd(
+                    ['git', 'rev-parse', '--short=8', 'HEAD'],
+                    run_always=True,
+                    get_stdout=True,
+                )
+                commit_hash = res.stdout.decode('utf8').strip()
+                content = chevron.render(content, {'git': commit_hash})
+
+        self.versions = json.loads(content)
+
     def _import_config(self, env: str) -> Any:
         """
         Nacte konfiguraci pro zadane prostredi
@@ -290,7 +311,7 @@ class Vindaloo:
         if not os.path.isfile("{}/{}.py".format(CONFIG_DIR, env)):
             return None
 
-        self.versions = json.load(open('{}/versions.json'.format(CONFIG_DIR)))
+        self._load_versions()
         sys.modules['vindaloo'].app = self
         sys.path.insert(0, os.path.abspath(CONFIG_DIR))
         try:

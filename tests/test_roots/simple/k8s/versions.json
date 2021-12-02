@@ -1,4 +1,4 @@
 {
-    "test/foo": "1.0.0",
+    "test/foo": "{{git}}-dev",
     "test/bar": "2.0.0"
 }

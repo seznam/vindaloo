@@ -24,11 +24,18 @@ def test_deploy(loo):
     assert vindaloo.app.args.cluster == 'cluster1'
 
     # check arguments docker and kubectl was called with
-    assert len(loo.cmd.call_args_list) == 3
-    auth_cmd = loo.cmd.call_args_list[0][0][0]
-    use_context_cmd = loo.cmd.call_args_list[1][0][0]
-    apply_cmd = loo.cmd.call_args_list[2][0][0][0:3]
+    assert len(loo.cmd.call_args_list) == 4
+    rev_parse_cmd = loo.cmd.call_args_list[0][0][0]
+    auth_cmd = loo.cmd.call_args_list[1][0][0]
+    use_context_cmd = loo.cmd.call_args_list[2][0][0]
+    apply_cmd = loo.cmd.call_args_list[3][0][0][0:3]
 
+    assert rev_parse_cmd == [
+        'git',
+        'rev-parse',
+        '--short=8',
+        'HEAD'
+    ]
     assert auth_cmd == [
         'kubectl',
         'auth',
@@ -62,11 +69,18 @@ def test_deploy_one_cluster(loo):
         loo.main()
 
     # check arguments docker and kubectl was called with
-    assert len(loo.cmd.call_args_list) == 3
-    auth_cmd = loo.cmd.call_args_list[0][0][0]
-    use_context_cmd = loo.cmd.call_args_list[1][0][0]
-    apply_cmd = loo.cmd.call_args_list[2][0][0][0:3]
+    assert len(loo.cmd.call_args_list) == 4
+    rev_parse_cmd = loo.cmd.call_args_list[0][0][0]
+    auth_cmd = loo.cmd.call_args_list[1][0][0]
+    use_context_cmd = loo.cmd.call_args_list[2][0][0]
+    apply_cmd = loo.cmd.call_args_list[3][0][0][0:3]
 
+    assert rev_parse_cmd == [
+        'git',
+        'rev-parse',
+        '--short=8',
+        'HEAD'
+    ]
     assert auth_cmd == [
         'kubectl',
         'auth',
@@ -100,12 +114,19 @@ def test_deploy_watch(loo):
         loo.main()
 
     # check arguments docker and kubectl was called with
-    assert len(loo.cmd.call_args_list) == 4
-    auth_cmd = loo.cmd.call_args_list[0][0][0]
-    use_context_cmd = loo.cmd.call_args_list[1][0][0]
-    apply_cmd = loo.cmd.call_args_list[2][0][0][0:3]
-    rollout_cmd = loo.cmd.call_args_list[3][0][0]
+    assert len(loo.cmd.call_args_list) == 5
+    rev_parse_cmd = loo.cmd.call_args_list[0][0][0]
+    auth_cmd = loo.cmd.call_args_list[1][0][0]
+    use_context_cmd = loo.cmd.call_args_list[2][0][0]
+    apply_cmd = loo.cmd.call_args_list[3][0][0][0:3]
+    rollout_cmd = loo.cmd.call_args_list[4][0][0]
 
+    assert rev_parse_cmd == [
+        'git',
+        'rev-parse',
+        '--short=8',
+        'HEAD'
+    ]
     assert auth_cmd == [
         'kubectl',
         'auth',
