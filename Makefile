@@ -31,6 +31,6 @@ upload:
 	python -m twine upload dist/*
 
 %-alpine:
-	docker run --rm -v $(PWD):/x python:$@ sh -c "apk add git; pip install pipenv; cd /x; pipenv lock; pipenv install --dev; pipenv run pytest tests"
+	docker run --rm -v $(PWD):/x python:$@ sh -c "apk add git; pip install pipenv; cd /x; pipenv install --dev; pipenv run pytest tests"
 
 .PHONY: all cache pex-local pex-in-docker test coverage clean test-all upload
