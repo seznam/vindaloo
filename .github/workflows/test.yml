@@ -19,8 +19,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         architecture: x64
-    - run: apt update
-    - run: apt install git
+    - run: sudo apt update
+    - run: sudo apt install git
     - run: pip install -U pip
     - run: pip install -U pipenv
     - run: pipenv install --dev
@@ -35,7 +35,8 @@ jobs:
       with:
         python-version: '3.9'
         architecture: 'x64'
-    - run: apt install git
+    - run: sudo apt update
+    - run: sudo apt install git
     - run: pip install -U pip
     - run: pip install -U pipenv
     - run: pipenv install --dev
