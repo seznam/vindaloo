@@ -53,7 +53,7 @@ CONFIG_DIR = 'k8s'
 GIT_HASH_PLACEHOLDER = '{{git}}'
 CHECK_VERSION_URL = 'https://raw.githubusercontent.com/seznam/vindaloo/master/version.json'
 
-VERSION = '4.1.1'
+VERSION = '4.2.0'
 
 
 class RefreshException(Exception):

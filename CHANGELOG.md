@@ -1,3 +1,18 @@
+# Version 4.2.0
+
+* added support for current git commit hash as image tag
+
+E.g. using `versions.json`
+```
+{
+  "test/foo": "{{git}}-dev"
+}
+```
+
+vindaloo will replace the `{{git}}` placeholder with 8 letters of current git hash 
+resulting in e.g. `test/foo:d6ee34ae-dev`.
+
+
 # Version 4.1.1
 
 * fix: `ConfigMap` added to `__all__` in `objects.py`
