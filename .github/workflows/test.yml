@@ -39,6 +39,6 @@ jobs:
     - run: pip install -U pip
     - run: pip install -U pipenv
     - run: pipenv install --dev
+    - run: pipenv run pytest --cov=vindaloo --cov-report=xml tests
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v2
-      run: pipenv run pytest --cov=vindaloo --cov-report=xml tests
