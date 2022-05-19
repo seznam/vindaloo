@@ -11,6 +11,7 @@ import ssl
 import subprocess
 import sys
 import tempfile
+import time
 from typing import Any, Dict, List, Set, BinaryIO, Sequence
 import urllib.request
 
@@ -238,6 +239,27 @@ class Vindaloo:
                 if deployment_name:
                     self._out('Waiting for rollout {} to finish'.format(deployment_name))
                     self.cmd(["kubectl", "rollout", "status", "deployment", deployment_name])
+
+            failed_jobs = []
+            for yaml_conf in self.config_module.K8S_OBJECTS.get('job', []):
+                if isinstance(yaml_conf, JsonSerializable):
+                    job_name = yaml_conf.name
+
+                if job_name:
+                    self._out('Waiting for job {} to finish'.format(job_name))
+                    succeeded, failed = None, None
+                    while not succeeded and not failed:
+                        time.sleep(60)  # one minute wait for not messing up kube
+                        succeeded = self.cmd(["kubectl", "get", "job", job_name, "-o", "jsonpath={.status.succeeded}"], get_stdout=True).stdout
+                        failed = self.cmd(["kubectl", "get", "job", job_name, "-o", "jsonpath={.status.failed}"], get_stdout=True).stdout
+                        if succeeded:
+                            self._out("Job {} ended successfully.".format(job_name))
+                        if failed:
+                            failed_jobs.append(job_name)
+                            self._out("Job {} failed.".format(job_name))
+
+            if failed_jobs:
+                self.fail("Vindaloo stopped working due to failed jobs: {}".format(failed_jobs))
 
     def kubectl_apply(self, filename: str, name: str = 'unnamed', object_type: str = 'k8s_object') -> bool:
         """
