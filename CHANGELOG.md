@@ -1,3 +1,8 @@
+# Version 4.3.0
+
+* Creation of a Kube Job will now wait until the job is completed (either successfully or unsuccessfully) in 
+the same manner as it is waiting for deployments to rollout.
+
 # Version 4.2.0
 
 * added support for current git commit hash as image tag
