@@ -1,3 +1,7 @@
+# Version 4.4.0
+
+* Waiting for deployments to rollout now checks if succesfully rolled out.
+
 # Version 4.3.0
 
 * Creation of a Kube Job will now wait until the job is completed (either successfully or unsuccessfully) in 
