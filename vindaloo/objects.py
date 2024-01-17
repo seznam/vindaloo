@@ -12,6 +12,8 @@ __all__ = (
     'CronJob',
     'Job',
     'Service',
+    'ServiceMonitor',
+    'PodMonitor',
 )
 
 
@@ -523,3 +525,64 @@ class ConfigMap(KubernetesManifestMixin):
             res['immutable'] = True
 
         return res
+
+
+class MonitorMixin:
+    api_version = "monitoring.coreos.com/v1"
+    kind = "Monitor"
+
+    def serialize(self, *args, **kwargs):
+        res = {
+            'apiVersion': self.api_version,
+            'kind': self.kind,
+            'metadata': self.metadata.serialize(*args, **kwargs),
+            'spec': self.spec.serialize(*args, **kwargs),
+        }
+        return res
+
+    def set_name(self, name):
+        self.name = name
+        self.metadata.name = name
+
+
+class MonitorSpec(Dict):
+    selector: Dict()
+    endpoints: List()
+
+
+class ServiceMonitor(MonitorMixin, KubernetesManifestMixin):
+    obj_type = "servicemonitor"
+    kind = "ServiceMonitor"
+
+    def __init__(self, name: str, path: str, port: str, service_name: str, metadata: DictType[str, Any] = None):
+        super().__init__(metadata, None)
+        self.spec = MonitorSpec(
+            selector=Dict({
+                'matchLabels': Dict({'app': service_name})
+            }),
+            endpoints=[{
+                'port': port,
+                'path': path,
+                'followRedirects': True,
+            }]
+        )
+        self.set_name(name)
+
+
+class PodMonitor(MonitorMixin, KubernetesManifestMixin):
+    obj_type = "podmonitor"
+    kind = "PodMonitor"
+
+    def __init__(self, name: str, path: str, port: str, pod_name: str, metadata: DictType[str, Any] = None):
+        super().__init__(metadata, None)
+        self.spec = MonitorSpec(
+            selector=Dict({
+                'matchLabels': Dict({'app': pod_name})
+            }),
+            podMetricsEndpoints=[{
+                'port': port,
+                'path': path,
+                'followRedirects': True,
+            }]
+        )
+        self.set_name(name)

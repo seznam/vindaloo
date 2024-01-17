@@ -35,7 +35,16 @@ DO_NOT_NEED_K8S_DIR = ('edit-secret',)
 
 NONE = "base"
 K8S_OBJECT_TYPES = [
-    "configmap", "secret", "podpreset", "deployment", "service", "ingres", "cronjob", "job"
+    "configmap",
+    "secret",
+    "podpreset",
+    "deployment",
+    "service",
+    "ingres",
+    "cronjob",
+    "job",
+    "servicemonitor",
+    "podmonitor",
 ]
 K8S_OBJECT_TYPES_YAML_PREFIX = {
     "configmap": "1",
@@ -46,6 +55,8 @@ K8S_OBJECT_TYPES_YAML_PREFIX = {
     "ingres": "6",
     "cronjob": "7",
     "job": "8",
+    "servicemonitor": "9",
+    "podmonitor": "10",
 }
 SUCCESS_REPLY = ("Y", "y", "a", "A")
 ENVS_CONFIG_NAME = 'vindaloo_conf'
@@ -54,7 +65,7 @@ CONFIG_DIR = 'k8s'
 GIT_HASH_PLACEHOLDER = '{{git}}'
 CHECK_VERSION_URL = 'https://raw.githubusercontent.com/seznam/vindaloo/master/version.json'
 
-VERSION = '4.4.0'
+VERSION = '4.5.0'
 
 
 class RefreshException(Exception):

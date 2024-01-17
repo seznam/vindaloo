@@ -1,3 +1,7 @@
+# Version 4.5.0
+
+* Added support for PodMonitor and ServiceMonitor objects
+
 # Version 4.4.0
 
 * Waiting for deployments to rollout now checks if succesfully rolled out.
