@@ -8,7 +8,7 @@
 Requirements
 ------------
 
-Python 3.6 and higher is required.
+Python 3.9 and higher is required.
 
 
 Installation

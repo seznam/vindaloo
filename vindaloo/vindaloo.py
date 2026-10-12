@@ -2,9 +2,9 @@
 
 import argparse
 import base64
-import imp
 import shutil
 from importlib import import_module
+import importlib.util
 import json
 import os
 import ssl
@@ -65,7 +65,7 @@ CONFIG_DIR = 'k8s'
 GIT_HASH_PLACEHOLDER = '{{git}}'
 CHECK_VERSION_URL = 'https://raw.githubusercontent.com/seznam/vindaloo/master/version.json'
 
-VERSION = '4.5.0'
+VERSION = '5.0.0'
 
 
 class RefreshException(Exception):
@@ -314,7 +314,10 @@ class Vindaloo:
             module = os.path.join(dir, ENVS_CONFIG_NAME)
             path = '{}.py'.format(module)
             if os.path.isfile(path):
-                self.envs_config_module = imp.load_source(module, path)
+                spec = importlib.util.spec_from_file_location(module, path)
+                self.envs_config_module = importlib.util.module_from_spec(spec)
+                sys.modules[module] = self.envs_config_module
+                spec.loader.exec_module(self.envs_config_module)
                 break
 
             # try parent dir.
