@@ -30,7 +30,7 @@ def loo():
     return loo
 
 
-@pytest.yield_fixture(scope='function')
+@pytest.fixture(scope='function')
 def test_temp_dir():
     with tempfile.TemporaryDirectory() as name:
         yield name

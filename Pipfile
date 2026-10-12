@@ -11,7 +11,4 @@ pyyaml = "*"
 [dev-packages]
 pytest = "*"
 pytest-cov = "*"
-codecov = "==2.1.13"
-importlib-metadata = "*"
-typing-extensions = "*"
-coverage = "==6.2"
+coverage = "*"

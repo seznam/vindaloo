@@ -1,3 +1,13 @@
+# Version 5.0.0
+
+## Breaking changes
+
+* support for Python 3.6, 3.7 and 3.8 is dropped, Python 3.9 or higher is required
+
+## Other changes
+
+* added support for Python 3.12 and 3.13 (replaced removed `imp` module with `importlib`)
+
 # Version 4.5.0
 
 * Added support for PodMonitor and ServiceMonitor objects
